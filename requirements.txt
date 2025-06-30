@@ -1,0 +1,9 @@
+streamlit
+opencv-python-headless
+pyzbar
+numpy
+pandas
+Pillow
+requests
+st-gsheets-connection
+streamlit_gsheets
