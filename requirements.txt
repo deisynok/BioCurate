@@ -6,4 +6,3 @@ pandas
 Pillow
 requests
 st-gsheets-connection
-streamlit_gsheets
