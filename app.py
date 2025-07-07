@@ -29,36 +29,42 @@ if 'img_folder' not in st.session_state:
     st.session_state.img_folder = ''
 
 # -----------------------------------------------
-# Menu
+# Menu HORIZONTAL RESPONSIVO
 # -----------------------------------------------
 if 'page' not in st.session_state:
     st.session_state.page = "Início"
 
-# MENU - no corpo principal
-menu_cols = st.columns(5)
+page = st.session_state.page
 
-with menu_cols[0]:
+cols = st.columns(4)
+
+with cols[0]:
     if st.button("🏠 Início"):
         st.session_state.page = "Início"
-with menu_cols[1]:
+with cols[1]:
     if st.button("📦 Base"):
         st.session_state.page = "Base de Dados"
-with menu_cols[2]:
+with cols[2]:
     if st.button("📋 Dados"):
         st.session_state.page = "Buscar Dados"
-with menu_cols[3]:
+with cols[3]:
     if st.button("📷 Imagem"):
         st.session_state.page = "Buscar Imagem"
-with menu_cols[4]:
-    if st.button("ℹ️ Sobre"):
-        st.session_state.page = "Sobre"
 
+# ⚡ Atualiza variável local
 page = st.session_state.page
+
 # -----------------------------------------------
 # 🏠 Página: Início
 # -----------------------------------------------
 if page == "Início":
-    st.markdown("## Bem-vindo ao BioCurate")
+    col1, col2 = st.columns([1,2])
+    with col1:
+        st.image("logo.png", width=200)
+    
+    with col2:
+        st.markdown("<h1 style='text-align: center;'>Bem-vindo ao BioCurate</h1>", unsafe_allow_html=True)
+    
     st.markdown("""
         Ferramenta para consulta de amostras por código de barras. 
         O BioCurate foi desenvolvido para facilitar o acesso, a curadoria e o uso de dados de coleções biológicas, especialmente em herbários. 
@@ -66,6 +72,7 @@ if page == "Início":
         acesse imagens vinculadas (caso estejam disponíveis) e faça buscas externas em bases como GBIF, Reflora e SpeciesLink.
         Uso não comercial, apenas para fins de pesquisa científica.
     """)
+    
     st.markdown("""
         ### Instruções:
 
@@ -78,9 +85,42 @@ if page == "Início":
         3. **📷 Buscar Imagem**  
         Esta aba permite buscar da imagem de uma amostra específica e enviar automaticamente a imagem vinculada para o serviço **Pl@ntNet**. Assim, você pode realizar uma **identificação automatizada da espécie**, recebendo uma lista de prováveis correspondências com nível de confiança.
         
+       
+    """)
+       
+    st.markdown("""
+        ### Sobre o BioCurate
+        O **BioCurate** oferece uma forma rápida e eficiente de cruzar informações da base de dados de coleções científicas por meio da leitura de códigos de barras ou entrada manual.
+
+        Ele melhora a acessibilidade e a precisão na gestão de coleções biológicas, facilitando a organização e a utilização de dados.
+
+        Este projeto é uma iniciativa do **Herbário da Universidade Federal do Amazonas (HUAM)** e faz parte da pesquisa de doutorado de **Deisy Saraiva**, vinculada ao **Programa de Pós-Graduação BIONORTE – Rede de Biodiversidade e Biotecnologia da Amazônia Legal**. A pesquisa foca no uso de tecnologias para ampliar o acesso e a curadoria das coleções do HUAM.
+
+        Contato: deisysaraiva@ufam.edu.br
+
+        - [Acesse o site do HUAM](http://huam.site)
+        - [A Coleção no site institucional da UFAM](https://www.icb.ufam.edu.br/colecoes/huam.html)
+
         ---
 
+        ### Sobre a Identificação Automática com Pl@ntNet
+
+        **BioCurate** também integra a tecnologia de identificação automática de espécies por imagens através da **API Pl@ntNet**, reconhecida internacionalmente.  
+        Para mais informações, acesse [Pl@ntNet](https://plantnet.org/).
+        
         **Aviso:** A identificação automática é realizada utilizando a [API Pl@ntNet](https://plantnet.org/). Os resultados são gerados por um sistema de aprendizado de máquina e devem ser conferidos por um especialista.
+    
+        ---
+
+        ### Sobre o padrão Darwin Core
+
+        O **Darwin Core** é um padrão internacional para compartilhamento de dados sobre biodiversidade. Ele define termos recomendados que garantem consistência e interoperabilidade entre bases de dados.
+
+        - [Repositório Darwin Core](https://github.com/tdwg/dwc)
+        - [Padrão Darwin Core](https://dwc.tdwg.org/terms)
+        - [Modelo de Cabeçalho Darwin Core](https://splink.cria.org.br/digir/darwin2.xsd)
+
+        - [Vídeo explicativo (YouTube)](https://www.youtube.com/embed/YC0DfctXs5Q)
     """)
 
 # -----------------------------------------------
@@ -377,43 +417,4 @@ elif page == "Buscar Imagem":
                     else:
                         st.warning("Link do Drive inválido.")
 
-# -----------------------------------------------
-# 🛈 Sobre
-# -----------------------------------------------
-elif page == "Sobre":
-    st.markdown(
-        "<div style='text-align: center;'><img src='logo.png' width='200'></div>",
-        unsafe_allow_html=True
-    )
-    st.markdown("<h1 style='text-align: center;'>BioCurate</h1>", unsafe_allow_html=True)
-    st.markdown("""
-        O **BioCurate** oferece uma forma rápida e eficiente de cruzar informações da base de dados de coleções científicas por meio da leitura de códigos de barras ou entrada manual.
-
-        Ele melhora a acessibilidade e a precisão na gestão de coleções biológicas, facilitando a organização e a utilização de dados.
-
-        Este projeto é uma iniciativa do **Herbário da Universidade Federal do Amazonas (HUAM)** e faz parte da pesquisa de doutorado de **Deisy Saraiva**, vinculada ao **Programa de Pós-Graduação BIONORTE – Rede de Biodiversidade e Biotecnologia da Amazônia Legal**. A pesquisa foca no uso de tecnologias para ampliar o acesso e a curadoria das coleções do HUAM.
-
-        Contato: deisysaraiva@ufam.edu.br
-
-        - [Acesse o site do HUAM](http://huam.site)
-        - [A Coleção no site institucional da UFAM](https://www.icb.ufam.edu.br/colecoes/huam.html)
-
-        ---
-
-        ### Identificação Automática com Pl@ntNet
-
-        **BioCurate** também integra a tecnologia de identificação automática de espécies por imagens através da **API Pl@ntNet**, reconhecida internacionalmente.  
-        Para mais informações, acesse [Pl@ntNet](https://plantnet.org/).
-
-        ---
-
-        ### Sobre o padrão Darwin Core
-
-        O **Darwin Core** é um padrão internacional para compartilhamento de dados sobre biodiversidade. Ele define termos recomendados que garantem consistência e interoperabilidade entre bases de dados.
-
-        - [Repositório Darwin Core](https://github.com/tdwg/dwc)
-        - [Padrão Darwin Core](https://dwc.tdwg.org/terms)
-        - [Modelo de Cabeçalho Darwin Core](https://splink.cria.org.br/digir/darwin2.xsd)
-
-        - [Vídeo explicativo (YouTube)](https://www.youtube.com/embed/YC0DfctXs5Q)
-    """)
+    
