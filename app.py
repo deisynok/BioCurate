@@ -104,135 +104,139 @@ elif page == "Base de Dados":
 # -----------------------------------------------
 elif page == "Buscar Dados":
     if st.session_state.df is None:
-        st.warning("Você precisa carregar a base primeiro.")
-    else:
-        st.subheader("Buscar Amostra")
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        df_base = conn.read(worksheet="Metadata", ttl="10m")
+        st.session_state.df = df_base
+        st.success("Metadata da BaseHUAM carregada automaticamente.")
+    
+    st.subheader("Buscar Amostra")
+    # Captura por câmera
+    image = st.camera_input("Capture o código")
+    code = ""
 
-        # Captura por câmera
-        image = st.camera_input("Capture o código")
-        code = ""
+    if image is not None:
+        bytes_data = image.getvalue()
+        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
 
-        if image is not None:
-            bytes_data = image.getvalue()
-            cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+        # Tenta BarcodeDetector
+        barcode_detector = cv2.barcode_BarcodeDetector()
+        decoded_info, decoded_type, points = barcode_detector.detectAndDecode(cv2_img)
 
-            # Tenta BarcodeDetector
-            barcode_detector = cv2.barcode_BarcodeDetector()
-            decoded_info, decoded_type, points = barcode_detector.detectAndDecode(cv2_img)
-
-            if decoded_info and decoded_info[0]:
-                code = decoded_info[0]
-                st.success(f"📦 Barcode detectado: `{code}`")
+        if decoded_info and decoded_info[0]:
+            code = decoded_info[0]
+            st.success(f"📦 Barcode detectado: `{code}`")
+        else:
+            # Tenta QR como fallback
+            qr_detector = cv2.QRCodeDetector()
+            data, bbox, _ = qr_detector.detectAndDecode(cv2_img)
+            if data:
+                code = data
+                st.success(f"QR Code detectado: `{code}`")
             else:
-                # Tenta QR como fallback
-                qr_detector = cv2.QRCodeDetector()
-                data, bbox, _ = qr_detector.detectAndDecode(cv2_img)
-                if data:
-                    code = data
-                    st.success(f"QR Code detectado: `{code}`")
-                else:
-                    st.warning("⚠️ Nenhum código detectado.")
+                st.warning("⚠️ Nenhum código detectado.")
 
-        # Entrada manual
-        code = st.text_input("Digite ou corrija o código:", value=code)
+    # Entrada manual
+    code = st.text_input("Digite ou corrija o código:", value=code)
 
-        # Botão de busca
-        if st.button("🔍 Buscar"):
-            df = st.session_state.df.copy()
-            col = 'CollectionCode'
-            st.session_state.barcode_col = col
-            code = code.strip().upper()
-            df[col] = df[col].astype(str).str.upper()
-            result = df[df[col].str.contains(code)]
+    # Botão de busca
+    if st.button("🔍 Buscar"):
+        df = st.session_state.df.copy()
+        col = 'CollectionCode'
+        st.session_state.barcode_col = col
+        code = code.strip().upper()
+        df[col] = df[col].astype(str).str.upper()
+        result = df[df[col].str.contains(code)]
 
-            # Aqui salva o tombo na sessão!
-            st.session_state["last_codigo"] = code
+        # Aqui salva o tombo na sessão!
+        st.session_state["last_codigo"] = code
 
-            if not result.empty:
-                first = result.iloc[0]
+        if not result.empty:
+            first = result.iloc[0]
 
-                # ✅ Nome científico + autor, com fallback
-                sci = first.get("ScientificName", "")
-                sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
+            # ✅ Nome científico + autor, com fallback
+            sci = first.get("ScientificName", "")
+            sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
 
-                auth = first.get("ScientificNameAuthor", "")
-                if not isinstance(auth, str) or not auth.strip():
-                    auth = ""
+            auth = first.get("ScientificNameAuthor", "")
+            if not isinstance(auth, str) or not auth.strip():
+                auth = ""
 
-                if auth:
-                    st.markdown(
-                        f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i> {auth}</div>",
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.markdown(
-                        f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i></div>",
-                        unsafe_allow_html=True
-                    )
+            if auth:
+                st.markdown(
+                    f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i> {auth}</div>",
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i></div>",
+                    unsafe_allow_html=True
+                )
 
-                # ✅ Família
-                fam = first.get("Family")
-                if pd.notna(fam):
-                    st.markdown(
-                        f"<div style='font-size: 18px;'>Família: {fam}</div>",
-                        unsafe_allow_html=True
-                    )
+            # ✅ Família
+            fam = first.get("Family")
+            if pd.notna(fam):
+                st.markdown(
+                    f"<div style='font-size: 18px;'>Família: {fam}</div>",
+                    unsafe_allow_html=True
+                )
 
-                # ✅ Local de armazenamento
-                loc = first.get("StorageLocation")
-                if pd.notna(loc):
-                    st.markdown(
-                        f"<b>Localização na coleção:</b> {loc}",
-                        unsafe_allow_html=True
-                    )
+            # ✅ Local de armazenamento
+            loc = first.get("StorageLocation")
+            if pd.notna(loc):
+                st.markdown(
+                    f"<b>Localização na coleção:</b> {loc}",
+                    unsafe_allow_html=True
+                )
 
-                # ✅ Coletor + número de coleta
-                coll = first.get("Collector")
-                addcoll = first.get("Addcoll")
-                number = first.get("CollectorNumber")
+            # ✅ Coletor + número de coleta
+            coll = first.get("Collector")
+            addcoll = first.get("Addcoll")
+            number = first.get("CollectorNumber")
                 
-                collected = f"{number or ''}".strip()
-                if coll or collected:
-                    st.markdown(
-                        f"<b>Coletor:</b> {coll or ''} {addcoll or ''} — Nº {collected}",
-                        unsafe_allow_html=True
-                    )
+            collected = f"{number or ''}".strip()
+            if coll or collected:
+                st.markdown(
+                    f"<b>Coletor:</b> {coll or ''} {addcoll or ''} — Nº {collected}",
+                    unsafe_allow_html=True
+                )
 
-                # ✅ Data de coleta
-                date_parts = []
-                for f in ["DayCollected", "MonthCollected", "YearCollected"]:
-                    val = first.get(f)
-                    if pd.notna(val):
-                        date_parts.append(str(int(val)))
-                if date_parts:
-                    st.markdown(
-                        f"<b>Data de coleta:</b> {'/'.join(date_parts)}",
-                        unsafe_allow_html=True
-                    )
+            # ✅ Data de coleta
+            date_parts = []
+            for f in ["DayCollected", "MonthCollected", "YearCollected"]:
+                val = first.get(f)
+                if pd.notna(val):
+                    date_parts.append(str(int(val)))
+            if date_parts:
+                st.markdown(
+                    f"<b>Data de coleta:</b> {'/'.join(date_parts)}",
+                    unsafe_allow_html=True
+                )
             
-                # Busca externa pelo nome científico ou família
-                nome_busca = ""
-                if isinstance(sci, str) and sci.strip():
-                    nome_busca = sci.strip().replace(" ", "+")
-                elif isinstance(fam, str) and fam.strip():
-                    nome_busca = fam.strip().replace(" ", "+")
+            # Busca externa pelo nome científico ou família
+            nome_busca = ""
+            if isinstance(sci, str) and sci.strip():
+                nome_busca = sci.strip().replace(" ", "+")
+            elif isinstance(fam, str) and fam.strip():
+                nome_busca = fam.strip().replace(" ", "+")
 
-                st.markdown("""
-                ### 📤 Pesquisar o nome em bases científicas:
-                <div style='display: flex; flex-wrap: wrap; gap: 10px;'>
-                    <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
-                    <a href='https://www.gbif.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>GBIF</a>
-                    <a href='https://floradobrasil.jbrj.gov.br/reflora/listaBrasil/ConsultaPublicaUC/BemVindoConsultaPublicaConsultar.do?nomeCompleto=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora Lista</a>
-                    <a href='https://floradobrasil.jbrj.gov.br/reflora/herbarioVirtual/ConsultaPublicoHVUC/BemVindoConsultaPublicaHVConsultar.do?nomeCientifico=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora HV</a>
-                    <a href='https://www.worldfloraonline.org/search?query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>World Flora</a>
-                    <a href='https://powo.science.kew.org/results?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>POWO</a>
-                    <a href='https://www.ipni.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>IPNI</a>
-                    <a href='https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>JSTOR Plants</a>
-                </div>
-                """, unsafe_allow_html=True)
+            st.markdown("""
+            ### 📤 Pesquisar o nome em bases científicas:
+            <div style='display: flex; flex-wrap: wrap; gap: 10px;'>
+                <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
+                <a href='https://www.gbif.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>GBIF</a>
+                <a href='https://floradobrasil.jbrj.gov.br/reflora/listaBrasil/ConsultaPublicaUC/BemVindoConsultaPublicaConsultar.do?nomeCompleto=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora Lista</a>
+                <a href='https://floradobrasil.jbrj.gov.br/reflora/herbarioVirtual/ConsultaPublicoHVUC/BemVindoConsultaPublicaHVConsultar.do?nomeCientifico=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora HV</a>
+                <a href='https://www.worldfloraonline.org/search?query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>World Flora</a>
+                <a href='https://powo.science.kew.org/results?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>POWO</a>
+                <a href='https://www.ipni.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>IPNI</a>
+                <a href='https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>JSTOR Plants</a>
+            </div>
+            """, unsafe_allow_html=True)
                                     
-            else:
-                st.error("Código não encontrado.")
+        else:
+            st.error("Código não encontrado.")
+        
+        
 
 # -----------------------------------------------
 # 📷 Página: Buscar Imagem (Pl@ntNet)
