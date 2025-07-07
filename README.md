@@ -4,6 +4,8 @@ Ela combina leitura de códigos de barras, vinculação a bases Darwin Core, con
 
 A aplicação foi criada no contexto do Herbário da Universidade Federal do Amazonas (HUAM) e faz parte de pesquisa vinculada ao PPG BIONORTE.
 
+https://biocurate.streamlit.app/
+
 ## ⚙️ Funcionalidades Principais
 Carregar uma base de dados no formato Darwin Core (CSV) ou integrar-se à planilha BaseHUAM hospedada no Google Drive.
 Ler códigos de barras via câmera ou entrada manual.
