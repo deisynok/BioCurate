@@ -43,7 +43,7 @@ with st.sidebar:
     sidebar_button("📦 Base de Dados", "Base de Dados")
     sidebar_button("📋 Buscar Dados", "Buscar Dados")
     sidebar_button("📷 Buscar Imagem", "Buscar Imagem")
-    sidebar_button("🛈 Sobre", "Sobre")
+    sidebar_button("ℹ️ Sobre", "Sobre")
 
 page = st.session_state.page
 
