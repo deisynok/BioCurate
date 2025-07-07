@@ -29,27 +29,31 @@ if 'img_folder' not in st.session_state:
     st.session_state.img_folder = ''
 
 # -----------------------------------------------
-# Barra Lateral
+# Menu
 # -----------------------------------------------
-with st.sidebar:
-    st.image("logo.png", width=300)
-    st.markdown("<h1 style='text-align: center;'>BioCurate</h1>", unsafe_allow_html=True)
+if 'page' not in st.session_state:
+    st.session_state.page = "Início"
 
-    def sidebar_button(label, target):
-        if st.button(label, use_container_width=True):
-            st.session_state.page = target
+# MENU - no corpo principal
+menu_cols = st.columns(5)
 
-    if 'page' not in st.session_state:
+with menu_cols[0]:
+    if st.button("🏠 Início"):
         st.session_state.page = "Início"
-
-    sidebar_button("🏠 Início", "Início")
-    sidebar_button("📦 Base de Dados", "Base de Dados")
-    sidebar_button("📋 Buscar Dados", "Buscar Dados")
-    sidebar_button("📷 Buscar Imagem", "Buscar Imagem")
-    sidebar_button("ℹ️ Sobre", "Sobre")
+with menu_cols[1]:
+    if st.button("📦 Base"):
+        st.session_state.page = "Base de Dados"
+with menu_cols[2]:
+    if st.button("📋 Dados"):
+        st.session_state.page = "Buscar Dados"
+with menu_cols[3]:
+    if st.button("📷 Imagem"):
+        st.session_state.page = "Buscar Imagem"
+with menu_cols[4]:
+    if st.button("ℹ️ Sobre"):
+        st.session_state.page = "Sobre"
 
 page = st.session_state.page
-
 # -----------------------------------------------
 # 🏠 Página: Início
 # -----------------------------------------------
@@ -377,7 +381,11 @@ elif page == "Buscar Imagem":
 # 🛈 Sobre
 # -----------------------------------------------
 elif page == "Sobre":
-    st.header("Sobre o Biocurate")
+    st.markdown(
+        "<div style='text-align: center;'><img src='logo.png' width='200'></div>",
+        unsafe_allow_html=True
+    )
+    st.markdown("<h1 style='text-align: center;'>BioCurate</h1>", unsafe_allow_html=True)
     st.markdown("""
         O **BioCurate** oferece uma forma rápida e eficiente de cruzar informações da base de dados de coleções científicas por meio da leitura de códigos de barras ou entrada manual.
 
