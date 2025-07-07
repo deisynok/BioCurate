@@ -15,7 +15,10 @@ from PIL import Image
 # 🚩 Configuração Geral
 # -----------------------------------------------
 
-st.set_page_config(page_title="BioCurate", layout="centered")
+st.set_page_config(page_title="BioCurate",  
+    page_icon="favicon.png",
+    layout="centered"
+    )
 
 # Variáveis de sessão
 if 'df' not in st.session_state:
