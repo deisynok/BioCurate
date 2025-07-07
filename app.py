@@ -6,7 +6,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import cv2
-from pyzbar.pyzbar import decode
 from streamlit_gsheets import GSheetsConnection
 import requests
 from io import BytesIO
@@ -110,19 +109,29 @@ elif page == "Buscar Dados":
         st.subheader("Buscar Amostra")
 
         # Captura por câmera
-        st.markdown("#### Capture o código via câmera")
-        img_file = st.camera_input("Tire uma foto do código de barras")
-
+        image = st.camera_input("Capture o código")
         code = ""
-        if img_file:
-            file_bytes = np.frombuffer(img_file.getvalue(), np.uint8)
-            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-            decoded = decode(img)
-            if decoded:
-                code = decoded[0].data.decode('utf-8')
-                st.success(f"Código detectado: {code}")
+
+        if image is not None:
+            bytes_data = image.getvalue()
+            cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+
+            # Tenta BarcodeDetector
+            barcode_detector = cv2.barcode_BarcodeDetector()
+            decoded_info, decoded_type, points = barcode_detector.detectAndDecode(cv2_img)
+
+            if decoded_info and decoded_info[0]:
+                code = decoded_info[0]
+                st.success(f"📦 Barcode detectado: `{code}`")
             else:
-                st.warning("Nenhum código detectado.")
+                # Tenta QR como fallback
+                qr_detector = cv2.QRCodeDetector()
+                data, bbox, _ = qr_detector.detectAndDecode(cv2_img)
+                if data:
+                    code = data
+                    st.success(f"QR Code detectado: `{code}`")
+                else:
+                    st.warning("⚠️ Nenhum código detectado.")
 
         # Entrada manual
         code = st.text_input("Digite ou corrija o código:", value=code)
@@ -243,24 +252,34 @@ elif page == "Buscar Imagem":
         return None
 
     # Captura via câmera
-    st.markdown("#### Capture o código via câmera")
-    img_file = st.camera_input("Tire uma foto do código de barras")
+    image = st.camera_input("Capture o código")
+    code = ""
 
-    codigo_camera = ""
-    if img_file:
-        file_bytes = np.frombuffer(img_file.getvalue(), np.uint8)
-        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        decoded = decode(img)
-        if decoded:
-            codigo_camera = decoded[0].data.decode('utf-8').strip().upper()
-            st.success(f"Código detectado: {codigo_camera}")
+    if image is not None:
+        bytes_data = image.getvalue()
+        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+
+        # Tenta BarcodeDetector
+        barcode_detector = cv2.barcode_BarcodeDetector()
+        decoded_info, decoded_type, points = barcode_detector.detectAndDecode(cv2_img)
+
+        if decoded_info and decoded_info[0]:
+            code = decoded_info[0]
+            st.success(f"📦 Barcode detectado: `{code}`")
         else:
-            st.warning("Nenhum código detectado.")
+            # Tenta QR como fallback
+            qr_detector = cv2.QRCodeDetector()
+            data, bbox, _ = qr_detector.detectAndDecode(cv2_img)
+            if data:
+                code = data
+                st.success(f"QR Code detectado: `{code}`")
+            else:
+                st.warning("⚠️ Nenhum código detectado.")
 
     # Entrada manual (pré-preenchida)
     codigo = st.text_input(
         "Digite ou corrija o número do tombo (ex.: HUAM000001)",
-        value=codigo_camera,
+        value=code,
         placeholder="Ex.: HUAM000001"
     )
 
