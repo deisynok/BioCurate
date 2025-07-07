@@ -217,17 +217,20 @@ elif page == "Buscar Dados":
                 elif isinstance(fam, str) and fam.strip():
                     nome_busca = fam.strip().replace(" ", "+")
 
-                if nome_busca:
-                    st.markdown("### 📤 Pesquisar o nome em bases científicas:")
-                    st.markdown(f"[SpeciesLink](https://specieslink.net/search/)")
-                    st.markdown(f"[GBIF](https://www.gbif.org/search?q={nome_busca})")
-                    st.markdown(f"[Reflora - Lista Brasil](https://floradobrasil.jbrj.gov.br/reflora/listaBrasil/ConsultaPublicaUC/BemVindoConsultaPublicaConsultar.do?nomeCompleto={nome_busca})")
-                    st.markdown(f"[Reflora - Herbário Virtual](https://floradobrasil.jbrj.gov.br/reflora/herbarioVirtual/ConsultaPublicoHVUC/BemVindoConsultaPublicaHVConsultar.do?nomeCientifico={nome_busca})")
-                    st.markdown(f"[World Flora Online](https://www.worldfloraonline.org/search?query={nome_busca})")
-                    st.markdown(f"[Plants of the World Online (POWO)](https://powo.science.kew.org/results?q={nome_busca})")
-                    st.markdown(f"[IPNI](https://www.ipni.org/search?q={nome_busca})")
-                    st.markdown(f"[JSTOR Plants](https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query={nome_busca})")
-
+                st.markdown("""
+                ### 📤 Pesquisar o nome em bases científicas:
+                <div style='display: flex; flex-wrap: wrap; gap: 10px;'>
+                    <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
+                    <a href='https://www.gbif.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>GBIF</a>
+                    <a href='https://floradobrasil.jbrj.gov.br/reflora/listaBrasil/ConsultaPublicaUC/BemVindoConsultaPublicaConsultar.do?nomeCompleto=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora Lista</a>
+                    <a href='https://floradobrasil.jbrj.gov.br/reflora/herbarioVirtual/ConsultaPublicoHVUC/BemVindoConsultaPublicaHVConsultar.do?nomeCientifico=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora HV</a>
+                    <a href='https://www.worldfloraonline.org/search?query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>World Flora</a>
+                    <a href='https://powo.science.kew.org/results?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>POWO</a>
+                    <a href='https://www.ipni.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>IPNI</a>
+                    <a href='https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>JSTOR Plants</a>
+                </div>
+                """, unsafe_allow_html=True)
+                                    
             else:
                 st.error("Código não encontrado.")
 
@@ -278,31 +281,35 @@ elif page == "Buscar Imagem":
 
     # Entrada manual (pré-preenchida)
     codigo = st.text_input(
-        "Digite ou corrija o número do tombo (ex.: HUAM000001)",
+        "Digite ou corrija o número do tombo",
         value=code,
         placeholder="Ex.: HUAM000001"
     )
-
+    
+    # Buscar e Identificar (Pl@ntNet)
     if st.button("🔍 Buscar e Identificar"):
-        if not codigo:
-            st.warning("Por favor, informe ou capture um número de tombo.")
+        col_codigo = 'barcode'
+        df[col_codigo] = df[col_codigo].astype(str).str.upper()
+        codigo = codigo.strip().upper()
+
+        resultado = df[
+            df[col_codigo].eq(codigo) |
+            df[col_codigo].str.endswith(codigo) |
+            df[col_codigo].str.endswith(codigo.zfill(6))
+        ]
+
+        if resultado.empty:
+            st.session_state.result_image = None
+            st.warning(f"Nenhuma exsicata encontrada para o tombo: {codigo}")
+            
         else:
-            col_codigo = 'barcode'
-            df[col_codigo] = df[col_codigo].astype(str).str.upper()
-            codigo = codigo.strip().upper()
+            st.session_state.result_image = resultado
+            st.success(f"{len(resultado)} resultado(s) encontrado(s):")
+            # 🚩 Mostrar o resultado Imagem se existir
+            if 'result_image' in st.session_state and st.session_state.result_image is not None:
+                for _, row in st.session_state.result_image.iterrows():
 
-            resultado = df[
-                df[col_codigo].eq(codigo) |
-                df[col_codigo].str.endswith(codigo) |
-                df[col_codigo].str.endswith(codigo.zfill(6))
-            ]
-
-            if resultado.empty:
-                st.warning(f"Nenhuma exsicata encontrada para o tombo: {codigo}")
-            else:
-                st.success(f"{len(resultado)} resultado(s) encontrado(s):")
-
-                for _, row in resultado.iterrows():
+                #for _, row in resultado.iterrows():
                     file_id = drive_link_to_direct(row['UrlExsicata'])
                     if file_id:
                         url = f"https://drive.google.com/uc?export=view&id={file_id}"
@@ -336,7 +343,7 @@ elif page == "Buscar Imagem":
                                         if not results:
                                             st.info("Nenhuma correspondência encontrada.")
                                         else:
-                                            st.subheader("Resultados da ientificação com a API do Pl@ntnet:")
+                                            st.subheader("Resultados da identificação com a API do Pl@ntnet:")
                                             for res in results:
                                                 species = res['species']['scientificNameWithoutAuthor']
                                                 score = res['score']
