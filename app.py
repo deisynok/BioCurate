@@ -97,7 +97,7 @@ if selected == "Início":
 
         4. **📷 Buscar Imagem**  
         Esta aba permite buscar da imagem de uma amostra específica e enviar automaticamente a imagem vinculada para o serviço **Pl@ntNet**. Assim, você pode realizar uma **identificação automatizada da espécie**, recebendo uma lista de prováveis correspondências com nível de confiança.
-        **Observação:** O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.
+        **Observação: O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.
         
        
     """)
@@ -145,7 +145,7 @@ elif selected == "Base de Dados":
     st.subheader("Base de Dados HUAM: Conexão automática")
 
     # Conexão automática com a planilha do HUAM
-    conn = st.connection("gsheets")
+    conn = st.connection("gsheets", type=GSheetsConnection)
     df_base = conn.read(worksheet="Metadata", ttl="10m")
 
     st.session_state.df = df_base
@@ -244,7 +244,7 @@ elif selected == "Buscar Dados":
         "a partir do número de tombo. Digite ou escaneie o código para visualizar "
         "dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
     if st.session_state.df is None:
-        conn = st.connection("gsheets")
+        conn = st.connection("gsheets", type=GSheetsConnection)
         df_base = conn.read(worksheet="Metadata", ttl="10m")
         st.session_state.df = df_base
         st.success("Metadata da BaseHUAM carregada automaticamente.")
@@ -373,7 +373,7 @@ elif selected == "Buscar Imagem":
     st.subheader("Identificação da Espécie com Pl@ntNet")
 
     # Conexão com a planilha
-    conn = st.connection("gsheets")
+    conn = st.connection("gsheets", type=GSheetsConnection)
     df = conn.read(worksheet="Image", ttl="10m")
 
     def drive_link_to_direct(link):
