@@ -97,7 +97,7 @@ if selected == "Início":
 
         4. **📷 Buscar Imagem**  
         Esta aba permite buscar da imagem de uma amostra específica e enviar automaticamente a imagem vinculada para o serviço **Pl@ntNet**. Assim, você pode realizar uma **identificação automatizada da espécie**, recebendo uma lista de prováveis correspondências com nível de confiança.
-        **Observação: O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.
+        **Observação:** O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.
         
        
     """)
@@ -186,6 +186,10 @@ elif selected == "Relatório":
                 num_material = len(df_fam)
                 generos = df_fam["Genus"].dropna().unique()
                 especies = df_fam["ScientificName"].dropna().unique()
+                locs = df_fam["StorageLocation"].dropna().unique()
+
+                if len(locs) > 0:
+                    st.markdown(f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
 
                 st.info(f"**Total de amostras:** {num_material}")
                 st.info(f"**Total de gêneros:** {len(generos)}")
@@ -208,6 +212,10 @@ elif selected == "Relatório":
                 so_genero = df_gen[df_gen["ScientificName"].isna() | (df_gen["ScientificName"].str.strip() == "")]
                 num_so_genero = len(so_genero)
                 especies_por_genero = df_gen["ScientificName"].dropna().unique()
+                locs = df_gen["StorageLocation"].dropna().unique()
+
+                if len(locs) > 0:
+                    st.markdown(f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
 
                 st.info(f"**Amostras do gênero:** {total_amostras}")
                 st.info(f"**Apenas identificadas até gênero:** {num_so_genero}")
@@ -224,6 +232,10 @@ elif selected == "Relatório":
             if especie:
                 df_esp = df[df["ScientificName"].str.upper() == especie.upper()]
                 total_especie = len(df_esp)
+                locs = df_esp["StorageLocation"].dropna().unique()
+
+                if len(locs) > 0:
+                    st.markdown(f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
 
                 st.info(f"**Total de amostras da espécie:** {total_especie}")
 
@@ -234,7 +246,6 @@ elif selected == "Relatório":
                     st.warning("Nenhuma amostra encontrada para essa espécie.")
             else:
                 st.warning("Digite o nome da espécie antes de buscar.")
-
 # -----------------------------------------------
 # 📋 Página: Buscar Dados
 # -----------------------------------------------
