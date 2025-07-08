@@ -189,7 +189,7 @@ elif selected == "Relatório":
                 locs = df_fam["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    st.markdown(f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
+                    st.markdown(f"<b>Armário:</b> <span style='color:green;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
 
                 st.info(f"**Total de amostras:** {num_material}")
                 st.info(f"**Total de gêneros:** {len(generos)}")
@@ -215,7 +215,7 @@ elif selected == "Relatório":
                 locs = df_gen["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    st.markdown(f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
+                    st.markdown(f"<b>Armário:</b> <span style='color:green;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
 
                 st.info(f"**Amostras do gênero:** {total_amostras}")
                 st.info(f"**Apenas identificadas até gênero:** {num_so_genero}")
@@ -235,7 +235,7 @@ elif selected == "Relatório":
                 locs = df_esp["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    st.markdown(f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
+                    st.markdown(f"<b>Armário:</b> <span style='color:green;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
 
                 st.info(f"**Total de amostras da espécie:** {total_especie}")
 
