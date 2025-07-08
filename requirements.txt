@@ -5,6 +5,4 @@ numpy
 opencv-python-headless>=4.5.1
 requests
 Pillow
-#streamlit-gsheets-connection se usar a API oficial do st.connection
-# Ou use:
-git+https://github.com/jerryjliu/streamlit-gsheets-connection.git
+streamlit-gsheets-connection
