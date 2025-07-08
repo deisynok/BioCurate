@@ -192,7 +192,7 @@ elif selected == "Relatório":
                 if len(locs) > 0:
                     locs_str = map(str, locs)
                     st.markdown(
-                        f"<b>📦 Armário:</b> <span style='color:green;'>{', '.join(sorted(locs_str))}</span>",
+                        f"<b>📦 Armário:</b> {', '.join(sorted(locs_str))}</span>",
                         unsafe_allow_html=True
                     )
 
@@ -222,7 +222,7 @@ elif selected == "Relatório":
                 if len(locs) > 0:
                     locs_str = map(str, locs)
                     st.markdown(
-                        f"<b>📦 Armário:</b> <span style='color:green;'>{', '.join(sorted(locs_str))}</span>",
+                        f"<b>📦 Armário:</b> {', '.join(sorted(locs_str))}</span>",
                         unsafe_allow_html=True
                     )
 
@@ -246,7 +246,7 @@ elif selected == "Relatório":
                 if len(locs) > 0:
                     locs_str = map(str, locs)
                     st.markdown(
-                        f"<b>📦 Armário:</b> <span style='color:green;'>{', '.join(sorted(locs_str))}</span>",
+                        f"<b>📦 Armário:</b> {', '.join(sorted(locs_str))}</span>",
                         unsafe_allow_html=True
                     )
 
