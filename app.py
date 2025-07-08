@@ -179,7 +179,7 @@ elif selected == "Relatório":
         df = st.session_state.df.copy()
 
         # 🔍 RELATÓRIO POR FAMÍLIA
-        st.subheader("🔎 Consultar por Família")
+        st.subheader("Consultar por Família")
         familia = st.text_input("Digite o nome da família:")
         if st.button("🔍 Buscar Família"):
             if familia:
@@ -192,7 +192,7 @@ elif selected == "Relatório":
                 if len(locs) > 0:
                     locs_str = map(str, locs)
                     st.markdown(
-                        f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs_str))}</span>",
+                        f"<b>📦 Armário:</b> <span style='color:green;'>{', '.join(sorted(locs_str))}</span>",
                         unsafe_allow_html=True
                     )
 
@@ -208,7 +208,7 @@ elif selected == "Relatório":
                 st.warning("Digite o nome da família antes de buscar.")
 
         # 🔍 RELATÓRIO POR GÊNERO
-        st.subheader("🔎 Consultar por Gênero")
+        st.subheader("Consultar por Gênero")
         genero = st.text_input("Digite o nome do gênero:")
         if st.button("🔍 Buscar Gênero"):
             if genero:
@@ -222,7 +222,7 @@ elif selected == "Relatório":
                 if len(locs) > 0:
                     locs_str = map(str, locs)
                     st.markdown(
-                        f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs_str))}</span>",
+                        f"<b>📦 Armário:</b> <span style='color:green;'>{', '.join(sorted(locs_str))}</span>",
                         unsafe_allow_html=True
                     )
 
@@ -235,7 +235,7 @@ elif selected == "Relatório":
                 st.warning("Digite o nome do gênero antes de buscar.")
 
         # 🔍 RELATÓRIO POR ESPÉCIE
-        st.subheader("🔎 Consultar por Espécie")
+        st.subheader("Consultar por Espécie")
         especie = st.text_input("Digite o nome científico da espécie:")
         if st.button("🔍 Buscar Espécie"):
             if especie:
@@ -246,7 +246,7 @@ elif selected == "Relatório":
                 if len(locs) > 0:
                     locs_str = map(str, locs)
                     st.markdown(
-                        f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs_str))}</span>",
+                        f"<b>📦 Armário:</b> <span style='color:green;'>{', '.join(sorted(locs_str))}</span>",
                         unsafe_allow_html=True
                     )
 
