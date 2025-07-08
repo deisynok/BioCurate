@@ -10,6 +10,8 @@ from streamlit_gsheets import GSheetsConnection
 import requests
 from io import BytesIO
 from PIL import Image
+from streamlit_option_menu import option_menu
+
 
 # -----------------------------------------------
 # 🚩 Configuração Geral
@@ -28,36 +30,44 @@ if 'barcode_col' not in st.session_state:
 if 'img_folder' not in st.session_state:
     st.session_state.img_folder = ''
 
+
 # -----------------------------------------------
 # Menu HORIZONTAL RESPONSIVO
 # -----------------------------------------------
-if 'page' not in st.session_state:
-    st.session_state.page = "Início"
-
-page = st.session_state.page
-
-cols = st.columns(4)
-
-with cols[0]:
-    if st.button("🏠 Início"):
-        st.session_state.page = "Início"
-with cols[1]:
-    if st.button("📦 Base"):
-        st.session_state.page = "Base de Dados"
-with cols[2]:
-    if st.button("📋 Dados"):
-        st.session_state.page = "Buscar Dados"
-with cols[3]:
-    if st.button("📷 Imagem"):
-        st.session_state.page = "Buscar Imagem"
-
-# ⚡ Atualiza variável local
-page = st.session_state.page
+# ✅ Cria o navbar horizontal
+selected = option_menu(
+    None,
+    ["Início", "Base de Dados", "Relatório", "Buscar Dados", "Buscar Imagem"],
+    icons=["house", "database", "bar-chart", "search", "image"],
+    menu_icon="cast",
+    default_index=0,
+    orientation="horizontal",
+    styles={
+    "container": {
+        "padding": "0!important",
+        "background-color": "#00A8A8"  # Azul esverdeado da lateral da logo
+    },
+    "icon": {
+        "color": "#FFFFFF",
+        "font-size": "20px"
+    },
+    "nav-link": {
+        "font-size": "18px",
+        "text-align": "center",
+        "margin": "0px",
+        "color": "#FFFFFF",
+        "--hover-color": "#B2DFDB"  # Hover verde-água suave
+    },
+    "nav-link-selected": {
+        "background-color": "#388E3C"  # Verde escuro harmônico
+    },
+},
+)
 
 # -----------------------------------------------
 # 🏠 Página: Início
 # -----------------------------------------------
-if page == "Início":
+if selected == "Início":
     col1, col2 = st.columns([1,2])
     with col1:
         st.image("logo.png", width=200)
@@ -77,13 +87,17 @@ if page == "Início":
         ### Instruções:
 
         1. **📦 Base de Dados**  
-        Use esta aba para carregar automaticamente os **Metadados** (vinculada à planilha oficial do HUAM) ou enviar sua própria base de dados no formato CSV, organizada no padrão **Darwin Core**. A base importada será utilizada em todas as buscas.
+        Use esta aba para carregar automaticamente os **Metadados** (vinculada à planilha oficial do HUAM - https://docs.google.com/spreadsheets/d/1Pf9Vig397BEESIo7dR9dXnBQ-B4RneIc_I3DG6vTMYw) ou enviar sua própria base de dados no formato CSV, organizada no padrão **Darwin Core**. A base importada será utilizada em todas as buscas.
 
-        2. **📋 Buscar Dados**  
+        2. **📊 Relatório**
+        Nesta aba, você pode gerar relatórios detalhados a partir dos dados cadastrados na base do HUAM. É possível consultar por **família**, **gênero** ou **espécie**, obtendo informações como o número total de amostras, lista de gêneros e espécies relacionadas e os registros completos encontrados. Os relatórios são úteis para análise, organização e planejamento de curadoria do acervo.
+        
+        3. **📋 Buscar Dados**  
         Nesta aba, você pode consultar informações detalhadas de cada amostra da base. A busca pode ser feita digitando o **número do tombo** ou capturando o **código de barras** com a câmera do dispositivo. O sistema exibe informações taxonômicas, local de armazenamento e dados de coleta.
 
-        3. **📷 Buscar Imagem**  
+        4. **📷 Buscar Imagem**  
         Esta aba permite buscar da imagem de uma amostra específica e enviar automaticamente a imagem vinculada para o serviço **Pl@ntNet**. Assim, você pode realizar uma **identificação automatizada da espécie**, recebendo uma lista de prováveis correspondências com nível de confiança.
+        **Observação:** O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.
         
        
     """)
@@ -126,7 +140,8 @@ if page == "Início":
 # -----------------------------------------------
 # 📦 Página: Base de Dados
 # -----------------------------------------------
-elif page == "Base de Dados":
+elif selected == "Base de Dados":
+    st.title("📦 Base de Dados")
     st.subheader("Base de Dados HUAM: Conexão automática")
 
     # Conexão automática com a planilha do HUAM
@@ -147,43 +162,98 @@ elif page == "Base de Dados":
         st.write(df_user.head())
 
 # -----------------------------------------------
+# 📊 Página: Relatório
+# -----------------------------------------------
+elif selected == "Relatório":
+    st.title("📊 Relatório de Dados")
+    st.write(
+        "Nesta página, você pode gerar relatórios detalhados a partir das amostras do HUAM. "
+        "Informe o nome da família, gênero ou espécie e clique em **Buscar** para obter estatísticas como quantidade de amostras, "
+        "lista de gêneros ou espécies relacionadas, e visualizar os registros completos presentes na base de dados."
+    )
+
+    if st.session_state.df is None:
+        st.warning("⚠️ A base de dados precisa ser carregada na aba **Base de Dados**.")
+    else:
+        df = st.session_state.df.copy()
+
+        # RELATÓRIO POR FAMÍLIA
+        st.subheader("Consultar por Família")
+        familia = st.text_input("Digite o nome da família:")
+        if st.button("🔍 Buscar Família"):
+            if familia:
+                df_fam = df[df["Family"].str.upper() == familia.upper()]
+                num_material = len(df_fam)
+                generos = df_fam["Genus"].dropna().unique()
+                especies = df_fam["ScientificName"].dropna().unique()
+
+                st.info(f"**Total de amostras:** {num_material}")
+                st.info(f"**Total de gêneros:** {len(generos)}")
+                st.write("**Gêneros encontrados:**")
+                st.write(", ".join(sorted(generos)))
+
+                st.info(f"**Total de espécies:** {len(especies)}")
+                st.write("**Espécies encontradas:**")
+                st.write(", ".join(sorted(especies)))
+            else:
+                st.warning("Digite o nome da família antes de buscar.")
+
+        # RELATÓRIO POR GÊNERO
+        st.subheader("Consultar por Gênero")
+        genero = st.text_input("Digite o nome do gênero:")
+        if st.button("🔍 Buscar Gênero"):
+            if genero:
+                df_gen = df[df["Genus"].str.upper() == genero.upper()]
+                total_amostras = len(df_gen)
+                so_genero = df_gen[df_gen["ScientificName"].isna() | (df_gen["ScientificName"].str.strip() == "")]
+                num_so_genero = len(so_genero)
+                especies_por_genero = df_gen["ScientificName"].dropna().unique()
+
+                st.info(f"**Amostras do gênero:** {total_amostras}")
+                st.info(f"**Apenas identificadas até gênero:** {num_so_genero}")
+                st.info(f"**Espécies dentro do gênero:** {len(especies_por_genero)}")
+                st.write("**Espécies encontradas:**")
+                st.write(", ".join(sorted(especies_por_genero)))
+            else:
+                st.warning("Digite o nome do gênero antes de buscar.")
+
+        # RELATÓRIO POR ESPÉCIE
+        st.subheader("Consultar por Espécie")
+        especie = st.text_input("Digite o nome científico da espécie:")
+        if st.button("🔍 Buscar Espécie"):
+            if especie:
+                df_esp = df[df["ScientificName"].str.upper() == especie.upper()]
+                total_especie = len(df_esp)
+
+                st.info(f"**Total de amostras da espécie:** {total_especie}")
+
+                if total_especie > 0:
+                    st.write("**Detalhe das amostras encontradas:**")
+                    st.dataframe(df_esp, use_container_width=True)
+                else:
+                    st.warning("Nenhuma amostra encontrada para essa espécie.")
+            else:
+                st.warning("Digite o nome da espécie antes de buscar.")
+
+# -----------------------------------------------
 # 📋 Página: Buscar Dados
 # -----------------------------------------------
-elif page == "Buscar Dados":
+elif selected == "Buscar Dados":
+    st.title("📋 Buscar Dados")
+    st.write("Nesta página, você pode consultar informações detalhadas das amostras "
+        "a partir do número de tombo. Digite ou escaneie o código para visualizar "
+        "dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
     if st.session_state.df is None:
         conn = st.connection("gsheets", type=GSheetsConnection)
         df_base = conn.read(worksheet="Metadata", ttl="10m")
         st.session_state.df = df_base
         st.success("Metadata da BaseHUAM carregada automaticamente.")
     
-    st.subheader("Buscar Amostra")
-    # Captura por câmera
-    image = st.camera_input("Capture o código")
-    code = ""
-
-    if image is not None:
-        bytes_data = image.getvalue()
-        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-
-        # Tenta BarcodeDetector
-        barcode_detector = cv2.barcode_BarcodeDetector()
-        decoded_info, decoded_type, points = barcode_detector.detectAndDecode(cv2_img)
-
-        if decoded_info and decoded_info[0]:
-            code = decoded_info[0]
-            st.success(f"📦 Barcode detectado: `{code}`")
-        else:
-            # Tenta QR como fallback
-            qr_detector = cv2.QRCodeDetector()
-            data, bbox, _ = qr_detector.detectAndDecode(cv2_img)
-            if data:
-                code = data
-                st.success(f"QR Code detectado: `{code}`")
-            else:
-                st.warning("⚠️ Nenhum código detectado.")
-
+    #st.subheader("Buscar Amostra")
+    
     # Entrada manual
-    code = st.text_input("Digite ou corrija o código:", value=code)
+    code = ""
+    code = st.text_input("Digite o código:", value=code)
 
     # Botão de busca
     if st.button("🔍 Buscar"):
@@ -192,7 +262,10 @@ elif page == "Buscar Dados":
         st.session_state.barcode_col = col
         code = code.strip().upper()
         df[col] = df[col].astype(str).str.upper()
-        result = df[df[col].str.contains(code)]
+        result = df[
+            df[col].str.upper().eq(code) |
+            df[col].str.endswith(code.zfill(6))
+        ]
 
         # Aqui salva o tombo na sessão!
         st.session_state["last_codigo"] = code
@@ -200,7 +273,7 @@ elif page == "Buscar Dados":
         if not result.empty:
             first = result.iloc[0]
 
-            # ✅ Nome científico + autor, com fallback
+            # Nome científico + autor, com fallback
             sci = first.get("ScientificName", "")
             sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
 
@@ -219,7 +292,7 @@ elif page == "Buscar Dados":
                     unsafe_allow_html=True
                 )
 
-            # ✅ Família
+            # Família
             fam = first.get("Family")
             if pd.notna(fam):
                 st.markdown(
@@ -227,7 +300,7 @@ elif page == "Buscar Dados":
                     unsafe_allow_html=True
                 )
 
-            # ✅ Local de armazenamento
+            # Local de armazenamento
             loc = first.get("StorageLocation")
             if pd.notna(loc):
                 st.markdown(
@@ -235,7 +308,7 @@ elif page == "Buscar Dados":
                     unsafe_allow_html=True
                 )
 
-            # ✅ Coletor + número de coleta
+            # Coletor + número de coleta
             coll = first.get("Collector")
             addcoll = first.get("Addcoll")
             number = first.get("CollectorNumber")
@@ -247,7 +320,7 @@ elif page == "Buscar Dados":
                     unsafe_allow_html=True
                 )
 
-            # ✅ Data de coleta
+            # Data de coleta
             date_parts = []
             for f in ["DayCollected", "MonthCollected", "YearCollected"]:
                 val = first.get(f)
@@ -258,6 +331,9 @@ elif page == "Buscar Dados":
                     f"<b>Data de coleta:</b> {'/'.join(date_parts)}",
                     unsafe_allow_html=True
                 )
+            
+            # Exibir linha completa da base
+            st.dataframe(result, use_container_width=True)       
             
             # Busca externa pelo nome científico ou família
             nome_busca = ""
@@ -281,14 +357,19 @@ elif page == "Buscar Dados":
             """, unsafe_allow_html=True)
                                     
         else:
-            st.error("Código não encontrado.")
-        
-        
+            st.error("Código não encontrado.")        
 
 # -----------------------------------------------
 # 📷 Página: Buscar Imagem (Pl@ntNet)
 # -----------------------------------------------
-elif page == "Buscar Imagem":
+elif selected == "Buscar Imagem":
+    st.title("📷 Buscar Imagem")
+    st.write(
+        "Nesta página, você pode buscar imagens das amostras do HUAM vinculadas à da base de dados "
+        "e utilizar o serviço **Pl@ntNet** para realizar a identificação automática da espécie. "
+        "Basta informar o número do tombo ou escanear o código de barras para visualizar "
+        "a imagem da exsicata e receber sugestões de identificação botânica."
+    )
     st.subheader("Identificação da Espécie com Pl@ntNet")
 
     # Conexão com a planilha
@@ -305,34 +386,10 @@ elif page == "Buscar Imagem":
             pass
         return None
 
-    # Captura via câmera
-    image = st.camera_input("Capture o código")
-    code = ""
-
-    if image is not None:
-        bytes_data = image.getvalue()
-        cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-
-        # Tenta BarcodeDetector
-        barcode_detector = cv2.barcode_BarcodeDetector()
-        decoded_info, decoded_type, points = barcode_detector.detectAndDecode(cv2_img)
-
-        if decoded_info and decoded_info[0]:
-            code = decoded_info[0]
-            st.success(f"📦 Barcode detectado: `{code}`")
-        else:
-            # Tenta QR como fallback
-            qr_detector = cv2.QRCodeDetector()
-            data, bbox, _ = qr_detector.detectAndDecode(cv2_img)
-            if data:
-                code = data
-                st.success(f"QR Code detectado: `{code}`")
-            else:
-                st.warning("⚠️ Nenhum código detectado.")
-
     # Entrada manual (pré-preenchida)
+    code = ""
     codigo = st.text_input(
-        "Digite ou corrija o número do tombo",
+        "Digite o número do tombo",
         value=code,
         placeholder="Ex.: HUAM000001"
     )
