@@ -164,12 +164,13 @@ elif selected == "Base de Dados":
 # -----------------------------------------------
 # 📊 Página: Relatório
 # -----------------------------------------------
-elif selected == "Relatório":
+eelif selected == "Relatório":
     st.title("📊 Relatório de Dados")
     st.write(
         "Nesta página, você pode gerar relatórios detalhados a partir das amostras do HUAM. "
-        "Informe o nome da família, gênero ou espécie e clique em **Buscar** para obter estatísticas como quantidade de amostras, "
-        "lista de gêneros ou espécies relacionadas, e visualizar os registros completos presentes na base de dados."
+        "Informe o nome da **família**, **gênero** ou **espécie** e clique em **Buscar** "
+        "para obter estatísticas como quantidade de amostras, armário de armazenamento, "
+        "lista de gêneros ou espécies relacionadas e visualizar os registros completos presentes na base de dados."
     )
 
     if st.session_state.df is None:
@@ -177,8 +178,8 @@ elif selected == "Relatório":
     else:
         df = st.session_state.df.copy()
 
-        # RELATÓRIO POR FAMÍLIA
-        st.subheader("Consultar por Família")
+        # 🔍 RELATÓRIO POR FAMÍLIA
+        st.subheader("🔎 Consultar por Família")
         familia = st.text_input("Digite o nome da família:")
         if st.button("🔍 Buscar Família"):
             if familia:
@@ -189,21 +190,25 @@ elif selected == "Relatório":
                 locs = df_fam["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    st.markdown(f"<b>Armário:</b> <span style='color:green;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
+                    locs_str = map(str, locs)
+                    st.markdown(
+                        f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs_str))}</span>",
+                        unsafe_allow_html=True
+                    )
 
                 st.info(f"**Total de amostras:** {num_material}")
                 st.info(f"**Total de gêneros:** {len(generos)}")
                 st.write("**Gêneros encontrados:**")
-                st.write(", ".join(sorted(generos)))
+                st.write(", ".join(sorted(map(str, generos))))
 
                 st.info(f"**Total de espécies:** {len(especies)}")
                 st.write("**Espécies encontradas:**")
-                st.write(", ".join(sorted(especies)))
+                st.write(", ".join(sorted(map(str, especies))))
             else:
                 st.warning("Digite o nome da família antes de buscar.")
 
-        # RELATÓRIO POR GÊNERO
-        st.subheader("Consultar por Gênero")
+        # 🔍 RELATÓRIO POR GÊNERO
+        st.subheader("🔎 Consultar por Gênero")
         genero = st.text_input("Digite o nome do gênero:")
         if st.button("🔍 Buscar Gênero"):
             if genero:
@@ -215,18 +220,22 @@ elif selected == "Relatório":
                 locs = df_gen["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    st.markdown(f"<b>Armário:</b> <span style='color:green;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
+                    locs_str = map(str, locs)
+                    st.markdown(
+                        f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs_str))}</span>",
+                        unsafe_allow_html=True
+                    )
 
                 st.info(f"**Amostras do gênero:** {total_amostras}")
                 st.info(f"**Apenas identificadas até gênero:** {num_so_genero}")
                 st.info(f"**Espécies dentro do gênero:** {len(especies_por_genero)}")
                 st.write("**Espécies encontradas:**")
-                st.write(", ".join(sorted(especies_por_genero)))
+                st.write(", ".join(sorted(map(str, especies_por_genero))))
             else:
                 st.warning("Digite o nome do gênero antes de buscar.")
 
-        # RELATÓRIO POR ESPÉCIE
-        st.subheader("Consultar por Espécie")
+        # 🔍 RELATÓRIO POR ESPÉCIE
+        st.subheader("🔎 Consultar por Espécie")
         especie = st.text_input("Digite o nome científico da espécie:")
         if st.button("🔍 Buscar Espécie"):
             if especie:
@@ -235,7 +244,11 @@ elif selected == "Relatório":
                 locs = df_esp["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    st.markdown(f"<b>Armário:</b> <span style='color:green;'>{', '.join(sorted(locs))}</span>", unsafe_allow_html=True)
+                    locs_str = map(str, locs)
+                    st.markdown(
+                        f"<b>📦 Armário(s):</b> <span style='color:gold;'>{', '.join(sorted(locs_str))}</span>",
+                        unsafe_allow_html=True
+                    )
 
                 st.info(f"**Total de amostras da espécie:** {total_especie}")
 
