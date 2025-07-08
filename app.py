@@ -37,7 +37,7 @@ if 'img_folder' not in st.session_state:
 # ✅ Cria o navbar horizontal
 selected = option_menu(
     None,
-    ["Início", "Base de Dados", "Relatório", "Buscar Dados", "Buscar Imagem"],
+    ["Início", "Base", "Relatório", "Busca", "Imagem"],
     icons=["house", "database", "bar-chart", "search", "image"],
     menu_icon="cast",
     default_index=0,
@@ -140,7 +140,7 @@ if selected == "Início":
 # -----------------------------------------------
 # 📦 Página: Base de Dados
 # -----------------------------------------------
-elif selected == "Base de Dados":
+elif selected == "Base":
     st.title("📦 Base de Dados")
     st.subheader("Base de Dados HUAM: Conexão automática")
 
@@ -262,7 +262,7 @@ elif selected == "Relatório":
 # -----------------------------------------------
 # 📋 Página: Buscar Dados
 # -----------------------------------------------
-elif selected == "Buscar Dados":
+elif selected == "Busca":
     st.title("📋 Buscar Dados")
     st.write("Nesta página, você pode consultar informações detalhadas das amostras "
         "a partir do número de tombo. Digite ou escaneie o código para visualizar "
@@ -386,7 +386,7 @@ elif selected == "Buscar Dados":
 # -----------------------------------------------
 # 📷 Página: Buscar Imagem (Pl@ntNet)
 # -----------------------------------------------
-elif selected == "Buscar Imagem":
+elif selected == "Imagem":
     st.title("📷 Buscar Imagem")
     st.write(
         "Nesta página, você pode buscar imagens das amostras do HUAM vinculadas à da base de dados "
