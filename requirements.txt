@@ -1,8 +1,8 @@
 streamlit
-opencv-python-headless
-pyzbar
-numpy
+streamlit-option-menu
 pandas
-Pillow
+numpy
+opencv-python-headless>=4.5.1
 requests
-st-gsheets-connection
+Pillow
+streamlit-gsheets-connection
