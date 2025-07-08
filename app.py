@@ -164,7 +164,7 @@ elif selected == "Base de Dados":
 # -----------------------------------------------
 # 📊 Página: Relatório
 # -----------------------------------------------
-eelif selected == "Relatório":
+elif selected == "Relatório":
     st.title("📊 Relatório de Dados")
     st.write(
         "Nesta página, você pode gerar relatórios detalhados a partir das amostras do HUAM. "
