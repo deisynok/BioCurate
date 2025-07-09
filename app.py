@@ -56,7 +56,7 @@ selected = option_menu(
         "text-align": "center",
         "margin": "0px",
         "color": "#FFFFFF",
-        "--hover-color": "#B2DFDB"  # Hover verde-água suave
+        "--hover-color": "#B2DFDB"  # verde-água suave
     },
     "nav-link-selected": {
         "background-color": "#388E3C"  # Verde escuro harmônico
@@ -76,9 +76,8 @@ if selected == "Início":
         st.markdown("<h1 style='text-align: center;'>Bem-vindo ao BioCurate</h1>", unsafe_allow_html=True)
     
     st.markdown("""
-        Ferramenta para consulta de amostras por código de barras. 
         O BioCurate foi desenvolvido para facilitar o acesso, a curadoria e o uso de dados de coleções biológicas, especialmente em herbários. 
-        Ele permite que você busque informações rapidamente a partir de códigos de barras, visualize dados completos das amostras, 
+        Ele permite que você busque informações rapidamente a partir de códigos das amostras ou números de tombo, visualize dados completos das amostras, 
         acesse imagens vinculadas (caso estejam disponíveis) e faça buscas externas em bases como GBIF, Reflora e SpeciesLink.
         Uso não comercial, apenas para fins de pesquisa científica.
     """)
@@ -97,9 +96,7 @@ if selected == "Início":
 
         4. **📷 Buscar Imagem**  
         Esta aba permite buscar da imagem de uma amostra específica e enviar automaticamente a imagem vinculada para o serviço **Pl@ntNet**. Assim, você pode realizar uma **identificação automatizada da espécie**, recebendo uma lista de prováveis correspondências com nível de confiança.
-        **Observação:** O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.
-        
-       
+        **Observação:** O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.        
     """)
        
     st.markdown("""
@@ -149,17 +146,17 @@ elif selected == "Base":
     df_base = conn.read(worksheet="Metadata", ttl="10m")
 
     st.session_state.df = df_base
-    st.success("Metadata da BaseHUAM carregada automaticamente.")
+    st.success("✔️ Metadata da Base de Dados do Herbário HUAM carregada automaticamente.")
     st.write(df_base.head())
 
     # Opção para sobrescrever com upload CSV
     st.subheader("Ou envie sua própria base em formato DarwinCore")
     file = st.file_uploader("Selecione o arquivo CSV", type=["csv"])
     if file:
-        df_user = pd.read_csv(file)
-        st.session_state.df = df_user
+        df_base = pd.read_csv(file)
+        st.session_state.df = df_base
         st.success("Arquivo CSV carregado! Base atualizada.")
-        st.write(df_user.head())
+        st.write(df_base.head())
 
 # -----------------------------------------------
 # 📊 Página: Relatório
@@ -167,14 +164,16 @@ elif selected == "Base":
 elif selected == "Relatório":
     st.title("📊 Relatório de Dados")
     st.write(
-        "Nesta página, você pode gerar relatórios detalhados a partir das amostras do HUAM. "
-        "Informe o nome da **família**, **gênero** ou **espécie** e clique em **Buscar** "
-        "para obter estatísticas como quantidade de amostras, armário de armazenamento, "
-        "lista de gêneros ou espécies relacionadas e visualizar os registros completos presentes na base de dados."
+        "Nesta página, você pode gerar relatórios detalhados a partir da Base de Dados carregada na aba **BASE**. "
+        "Informe o nome da **família**, **gênero** ou **espécie** e clique em **Buscar** para obter estatísticas como quantidade de amostras, armário de armazenamento, lista de gêneros ou espécies relacionadas e visualizar os registros completos presentes na base de dados."
     )
 
     if st.session_state.df is None:
-        st.warning("⚠️ A base de dados precisa ser carregada na aba **Base de Dados**.")
+        #st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")
+		conn = st.connection("gsheets", type=GSheetsConnection)
+        df_base = conn.read(worksheet="Metadata", ttl="10m")
+        st.session_state.df = df_base
+        st.success("✔️ Metadata da Base de Dados do Herbário HUAM carregada automaticamente.")
     else:
         df = st.session_state.df.copy()
 
@@ -215,7 +214,6 @@ elif selected == "Relatório":
                 df_gen = df[df["Genus"].str.upper() == genero.upper()]
                 total_amostras = len(df_gen)
                 so_genero = df_gen[df_gen["ScientificName"].isna() | (df_gen["ScientificName"].str.strip() == "")]
-                num_so_genero = len(so_genero)
                 especies_por_genero = df_gen["ScientificName"].dropna().unique()
                 locs = df_gen["StorageLocation"].dropna().unique()
 
@@ -227,7 +225,6 @@ elif selected == "Relatório":
                     )
 
                 st.info(f"**Amostras do gênero:** {total_amostras}")
-                st.info(f"**Apenas identificadas até gênero:** {num_so_genero}")
                 st.info(f"**Espécies dentro do gênero:** {len(especies_por_genero)}")
                 st.write("**Espécies encontradas:**")
                 st.write(", ".join(sorted(map(str, especies_por_genero))))
@@ -264,16 +261,12 @@ elif selected == "Relatório":
 # -----------------------------------------------
 elif selected == "Busca":
     st.title("📋 Buscar Dados")
-    st.write("Nesta página, você pode consultar informações detalhadas das amostras "
-        "a partir do número de tombo. Digite ou escaneie o código para visualizar "
-        "dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
+    st.write("Nesta página, você pode consultar informações detalhadas das amostras a partir do número de tombo. Digite o código para visualizar dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
     if st.session_state.df is None:
         conn = st.connection("gsheets", type=GSheetsConnection)
         df_base = conn.read(worksheet="Metadata", ttl="10m")
         st.session_state.df = df_base
-        st.success("Metadata da BaseHUAM carregada automaticamente.")
-    
-    #st.subheader("Buscar Amostra")
+        st.success("✔️ Metadata da Base de Dados do Herbário HUAM carregada automaticamente.")
     
     # Entrada manual
     code = ""
@@ -369,7 +362,6 @@ elif selected == "Busca":
             st.markdown("""
             ### 📤 Pesquisar o nome em bases científicas:
             <div style='display: flex; flex-wrap: wrap; gap: 10px;'>
-                <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
                 <a href='https://www.gbif.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>GBIF</a>
                 <a href='https://floradobrasil.jbrj.gov.br/reflora/listaBrasil/ConsultaPublicaUC/BemVindoConsultaPublicaConsultar.do?nomeCompleto=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora Lista</a>
                 <a href='https://floradobrasil.jbrj.gov.br/reflora/herbarioVirtual/ConsultaPublicoHVUC/BemVindoConsultaPublicaHVConsultar.do?nomeCientifico=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora HV</a>
@@ -377,6 +369,7 @@ elif selected == "Busca":
                 <a href='https://powo.science.kew.org/results?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>POWO</a>
                 <a href='https://www.ipni.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>IPNI</a>
                 <a href='https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>JSTOR Plants</a>
+				<a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
             </div>
             """, unsafe_allow_html=True)
                                     
@@ -389,10 +382,8 @@ elif selected == "Busca":
 elif selected == "Imagem":
     st.title("📷 Buscar Imagem")
     st.write(
-        "Nesta página, você pode buscar imagens das amostras do HUAM vinculadas à da base de dados "
-        "e utilizar o serviço **Pl@ntNet** para realizar a identificação automática da espécie. "
-        "Basta informar o número do tombo ou escanear o código de barras para visualizar "
-        "a imagem da exsicata e receber sugestões de identificação botânica."
+        "Nesta página, você pode buscar imagens das amostras do HUAM vinculadas à da base de dados e utilizar o serviço **Pl@ntNet** para realizar a identificação automática da espécie. "
+        "Basta informar o número do tombo para visualizar a imagem da exsicata e receber sugestões de identificação botânica."
     )
     st.subheader("Identificação da Espécie com Pl@ntNet")
 
