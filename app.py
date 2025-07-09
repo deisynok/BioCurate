@@ -83,7 +83,7 @@ if selected == "Início":
     """)
     
     st.markdown("""
-        ### Instruções:
+        ### Recursos do BioCurate:
 
         1. **📦 Base de Dados**  
         Carregar automaticamente os **Metadados** (vinculada à planilha oficial do HUAM - https://docs.google.com/spreadsheets/d/1Pf9Vig397BEESIo7dR9dXnBQ-B4RneIc_I3DG6vTMYw) ou enviar sua própria base de dados no formato CSV, organizada no padrão **Darwin Core**. A base importada será utilizada em todas as buscas.
@@ -133,7 +133,7 @@ if selected == "Início":
         - [Vídeo explicativo (YouTube)](https://www.youtube.com/embed/YC0DfctXs5Q)
     """)
 
-    with st.expander("📑 Descrição dos Metadados da Base HUAM"):
+    with st.expander("Descrição dos Metadados da Base HUAM"):
         st.markdown("""
             A base de dados oficial do HUAM segue o padrão **Darwin Core**, adotando campos fundamentais para curadoria, interoperabilidade e divulgação de informações botânicas.
 
@@ -195,6 +195,12 @@ elif selected == "Relatório":
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
         df = st.session_state.df.copy()
+
+        if st.button("Listar Todas as Famílias Botânicas"):
+            todas_familias = df["Family"].dropna().unique()
+            todas_familias.sort()
+            st.success(f"**Total de famílias encontradas:** {len(todas_familias)}")
+            st.write(", ".join(todas_familias))
 
         # 🔍 RELATÓRIO POR FAMÍLIA
         st.subheader("Consultar por Família")
@@ -300,7 +306,7 @@ elif selected == "Busca":
         df = st.session_state.df.copy()
         col = 'CollectionCode'
         st.session_state.barcode_col = col
-        code = code.strip().upper()
+        code = codigo.strip().upper()
         df[col] = df[col].astype(str).str.upper()
         result = df[
             df[col].str.upper().eq(code) |
@@ -392,7 +398,7 @@ elif selected == "Busca":
                 <a href='https://powo.science.kew.org/results?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>POWO</a>
                 <a href='https://www.ipni.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>IPNI</a>
                 <a href='https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>JSTOR Plants</a>
-		        <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
+                <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
             </div>
             """, unsafe_allow_html=True)
                                     
