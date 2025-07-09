@@ -170,7 +170,7 @@ elif selected == "Relatório":
 
     if st.session_state.df is None:
         #st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")
-		conn = st.connection("gsheets", type=GSheetsConnection)
+	conn = st.connection("gsheets", type=GSheetsConnection)
         df_base = conn.read(worksheet="Metadata", ttl="10m")
         st.session_state.df = df_base
         st.success("✔️ Metadata da Base de Dados do Herbário HUAM carregada automaticamente.")
