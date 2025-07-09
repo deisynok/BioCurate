@@ -14,7 +14,7 @@ from streamlit_option_menu import option_menu
 
 
 # -----------------------------------------------
-# 🚩 Configuração Geral
+# Configuração Geral
 # -----------------------------------------------
 
 st.set_page_config(page_title="BioCurate",  
@@ -34,7 +34,7 @@ if 'img_folder' not in st.session_state:
 # -----------------------------------------------
 # Menu HORIZONTAL RESPONSIVO
 # -----------------------------------------------
-# ✅ Cria o navbar horizontal
+# Cria o navbar horizontal
 selected = option_menu(
     None,
     ["Início", "Base", "Relatório", "Busca", "Imagem"],
@@ -105,7 +105,7 @@ if selected == "Início":
 
         Ele melhora a acessibilidade e a precisão na gestão de coleções biológicas, facilitando a organização e a utilização de dados.
 
-        Este projeto é uma iniciativa do **Herbário da Universidade Federal do Amazonas (HUAM)** e faz parte da pesquisa de doutorado de **Deisy Saraiva**, vinculada ao **Programa de Pós-Graduação BIONORTE – Rede de Biodiversidade e Biotecnologia da Amazônia Legal**. A pesquisa foca no uso de tecnologias para ampliar o acesso e a curadoria das coleções do HUAM.
+        Este projeto é uma iniciativa do **Herbário da Universidade Federal do Amazonas (HUAM)** e faz parte da pesquisa de doutorado de **Deisy Saraiva**, vinculada ao **Programa de Pós-Graduação BIONORTE – Rede de Biodiversidade e Biotecnologia da Amazônia Legal**. A pesquisa foca no uso de tecnologias para ampliar o acesso e a curadoria de coleções científicas, principalmente do Herbário do HUAM.
 
         Contato: deisysaraiva@ufam.edu.br
 
@@ -116,7 +116,7 @@ if selected == "Início":
 
         ### Sobre a Identificação Automática com Pl@ntNet
 
-        **BioCurate** também integra a tecnologia de identificação automática de espécies por imagens através da **API Pl@ntNet**, reconhecida internacionalmente.  
+        **BioCurate** também integra a tecnologia de identificação automática de espécies por imagens através da **API Pl@ntNet**. 
         Para mais informações, acesse [Pl@ntNet](https://plantnet.org/).
         
         **Aviso:** A identificação automática é realizada utilizando a [API Pl@ntNet](https://plantnet.org/). Os resultados são gerados por um sistema de aprendizado de máquina e devem ser conferidos por um especialista.
@@ -130,7 +130,6 @@ if selected == "Início":
         - [Repositório Darwin Core](https://github.com/tdwg/dwc)
         - [Padrão Darwin Core](https://dwc.tdwg.org/terms)
         - [Modelo de Cabeçalho Darwin Core](https://splink.cria.org.br/digir/darwin2.xsd)
-
         - [Vídeo explicativo (YouTube)](https://www.youtube.com/embed/YC0DfctXs5Q)
     """)
 
@@ -266,7 +265,11 @@ elif selected == "Busca":
     
     # Entrada manual
     code = ""
-    code = st.text_input("Digite o código:", value=code)
+    codigo = st.text_input(
+        "Digite o número do tombo",
+        value=code,
+        placeholder="Ex.: HUAM001245 ou somente 1245"
+    )
 
     # Botão de busca
     if st.button("🔍 Buscar"):
@@ -402,7 +405,7 @@ elif selected == "Imagem":
     codigo = st.text_input(
         "Digite o número do tombo",
         value=code,
-        placeholder="Ex.: HUAM000001"
+        placeholder="Ex.: HUAM001245 ou somente 1245"
     )
     
     # Buscar e Identificar (Pl@ntNet)
