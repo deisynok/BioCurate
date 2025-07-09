@@ -186,7 +186,7 @@ elif selected == "Relatório":
                 if len(locs) > 0:
                     locs_str = map(str, locs)
                     st.markdown(
-                        f"<b>📦 Armário:</b> {', '.join(sorted(locs_str))}</span>",
+                        f"<b>📦 Armário: {', '.join(sorted(locs_str))}</span></b>",
                         unsafe_allow_html=True
                     )
 
