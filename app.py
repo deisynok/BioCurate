@@ -134,28 +134,28 @@ if selected == "Início":
     """)
 
     with st.expander("📑 Descrição dos Metadados da Base HUAM"):
-    st.markdown("""
-        A base de dados oficial do HUAM segue o padrão **Darwin Core**, adotando campos fundamentais para curadoria, interoperabilidade e divulgação de informações botânicas.
+        st.markdown("""
+            A base de dados oficial do HUAM segue o padrão **Darwin Core**, adotando campos fundamentais para curadoria, interoperabilidade e divulgação de informações botânicas.
 
-        **Campos principais:**
+            **Campos principais:**
 
-        - **CollectionCode:** Código único da coleção (número do tombo HUAM).
-        - **CatalogNumber:** Número de catálogo interno da amostra.
-        - **Collector:** Nome do coletor principal responsável pela amostra.
-        - **Addcoll:** Coletores adicionais envolvidos na coleta.
-        - **CollectorNumberPrefix:** Prefixo que antecede o número de coleta (quando houver).
-        - **CollectorNumber:** Número atribuído pelo coletor à amostra.
-        - **CollectorNumberSuffix:** Sufixo complementar ao número de coleta (quando houver).
-        - **DayCollected / MonthCollected / YearCollected:** Datas exatas de coleta da amostra.
-        - **Family:** Família botânica a que pertence a amostra.
-        - **ScientificName:** Nome científico completo (gênero + espécie + infraespécie, se aplicável).
-        - **Genus:** Nome do gênero botânico.
-        - **Species:** Epíteto específico (nome da espécie).
-        - **ScientificNameAuthor:** Autoridade taxonômica que descreveu o táxon.
-        - **StorageLocation:** Localização física da amostra na coleção (ex.: armário, prateleira).
+            - **CollectionCode:** Código único da coleção (número do tombo HUAM).
+            - **CatalogNumber:** Número de catálogo interno da amostra.
+            - **Collector:** Nome do coletor principal responsável pela amostra.
+            - **Addcoll:** Coletores adicionais envolvidos na coleta.
+            - **CollectorNumberPrefix:** Prefixo que antecede o número de coleta (quando houver).
+            - **CollectorNumber:** Número atribuído pelo coletor à amostra.
+            - **CollectorNumberSuffix:** Sufixo complementar ao número de coleta (quando houver).
+            - **DayCollected / MonthCollected / YearCollected:** Datas exatas de coleta da amostra.
+            - **Family:** Família botânica a que pertence a amostra.
+            - **ScientificName:** Nome científico completo (gênero + espécie + infraespécie, se aplicável).
+            - **Genus:** Nome do gênero botânico.
+            - **Species:** Epíteto específico (nome da espécie).
+            - **ScientificNameAuthor:** Autoridade taxonômica que descreveu o táxon.
+            - **StorageLocation:** Localização física da amostra na coleção (ex.: armário, prateleira).
 
-        Esses campos garantem que a base de dados seja compatível com padrões de intercâmbio, como **GBIF**, **SpeciesLink** e **Reflora**, e viabilizam sua utilização em **sistemas digitais** como o BioCurate.
-    """)
+            Esses campos garantem que a base de dados seja compatível com padrões de intercâmbio, como **GBIF**, **SpeciesLink** e **Reflora**, e viabilizam sua utilização em **sistemas digitais** como o BioCurate.
+        """)
 
 # -----------------------------------------------
 # 📦 Página: Base de Dados
