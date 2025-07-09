@@ -86,16 +86,16 @@ if selected == "Início":
         ### Instruções:
 
         1. **📦 Base de Dados**  
-        Use esta aba para carregar automaticamente os **Metadados** (vinculada à planilha oficial do HUAM - https://docs.google.com/spreadsheets/d/1Pf9Vig397BEESIo7dR9dXnBQ-B4RneIc_I3DG6vTMYw) ou enviar sua própria base de dados no formato CSV, organizada no padrão **Darwin Core**. A base importada será utilizada em todas as buscas.
+        Carregar automaticamente os **Metadados** (vinculada à planilha oficial do HUAM - https://docs.google.com/spreadsheets/d/1Pf9Vig397BEESIo7dR9dXnBQ-B4RneIc_I3DG6vTMYw) ou enviar sua própria base de dados no formato CSV, organizada no padrão **Darwin Core**. A base importada será utilizada em todas as buscas.
 
-        2. **📊 Relatório**
-        Nesta aba, você pode gerar relatórios detalhados a partir dos dados cadastrados na base do HUAM. É possível consultar por **família**, **gênero** ou **espécie**, obtendo informações como o número total de amostras, lista de gêneros e espécies relacionadas e os registros completos encontrados. Os relatórios são úteis para análise, organização e planejamento de curadoria do acervo.
+        2. **📊 Relatório**  
+        Gerar relatórios detalhados a partir dos dados cadastrados na base do HUAM. É possível consultar por **família**, **gênero** ou **espécie**, obtendo informações como o número total de amostras, lista de gêneros e espécies relacionadas e os registros completos encontrados. Os relatórios são úteis para análise, organização e planejamento de curadoria do acervo.
         
         3. **📋 Buscar Dados**  
-        Nesta aba, você pode consultar informações detalhadas de cada amostra da base. A busca pode ser feita digitando o **número do tombo** ou capturando o **código de barras** com a câmera do dispositivo. O sistema exibe informações taxonômicas, local de armazenamento e dados de coleta.
+        Consultar informações detalhadas de cada amostra da base. A busca pode ser feita digitando o **número do tombo** ou capturando o **código de barras** com a câmera do dispositivo. O sistema exibe informações taxonômicas, local de armazenamento e dados de coleta.
 
         4. **📷 Buscar Imagem**  
-        Esta aba permite buscar da imagem de uma amostra específica e enviar automaticamente a imagem vinculada para o serviço **Pl@ntNet**. Assim, você pode realizar uma **identificação automatizada da espécie**, recebendo uma lista de prováveis correspondências com nível de confiança.
+        Buscar a imagem de uma amostra específica e enviá-la automaticamente para o serviço **Pl@ntNet**. Assim, você pode realizar uma **identificação automatizada da espécie**, recebendo uma lista de prováveis correspondências com nível de confiança.  
         **Observação:** O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.        
     """)
        
@@ -133,6 +133,30 @@ if selected == "Início":
         - [Vídeo explicativo (YouTube)](https://www.youtube.com/embed/YC0DfctXs5Q)
     """)
 
+    with st.expander("📑 Descrição dos Metadados da Base HUAM"):
+    st.markdown("""
+        A base de dados oficial do HUAM segue o padrão **Darwin Core**, adotando campos fundamentais para curadoria, interoperabilidade e divulgação de informações botânicas.
+
+        **Campos principais:**
+
+        - **CollectionCode:** Código único da coleção (número do tombo HUAM).
+        - **CatalogNumber:** Número de catálogo interno da amostra.
+        - **Collector:** Nome do coletor principal responsável pela amostra.
+        - **Addcoll:** Coletores adicionais envolvidos na coleta.
+        - **CollectorNumberPrefix:** Prefixo que antecede o número de coleta (quando houver).
+        - **CollectorNumber:** Número atribuído pelo coletor à amostra.
+        - **CollectorNumberSuffix:** Sufixo complementar ao número de coleta (quando houver).
+        - **DayCollected / MonthCollected / YearCollected:** Datas exatas de coleta da amostra.
+        - **Family:** Família botânica a que pertence a amostra.
+        - **ScientificName:** Nome científico completo (gênero + espécie + infraespécie, se aplicável).
+        - **Genus:** Nome do gênero botânico.
+        - **Species:** Epíteto específico (nome da espécie).
+        - **ScientificNameAuthor:** Autoridade taxonômica que descreveu o táxon.
+        - **StorageLocation:** Localização física da amostra na coleção (ex.: armário, prateleira).
+
+        Esses campos garantem que a base de dados seja compatível com padrões de intercâmbio, como **GBIF**, **SpeciesLink** e **Reflora**, e viabilizam sua utilização em **sistemas digitais** como o BioCurate.
+    """)
+
 # -----------------------------------------------
 # 📦 Página: Base de Dados
 # -----------------------------------------------
@@ -145,7 +169,7 @@ elif selected == "Base":
     df_base = conn.read(worksheet="Metadata", ttl="10m")
 
     st.session_state.df = df_base
-    st.success("✔️ Metadata da Base de Dados do Herbário HUAM carregada automaticamente.")
+    st.success("✔️ Base de Dados do Herbário HUAM carregada automaticamente.")
     st.write(df_base.head())
 
     # Opção para sobrescrever com upload CSV
@@ -261,7 +285,7 @@ elif selected == "Busca":
         conn = st.connection("gsheets", type=GSheetsConnection)
         df_base = conn.read(worksheet="Metadata", ttl="10m")
         st.session_state.df = df_base
-        st.success("✔️ Metadata da Base de Dados do Herbário HUAM carregada automaticamente.")
+        st.success("✔️ Base de Dados do Herbário HUAM carregada automaticamente.")
     
     # Entrada manual
     code = ""
@@ -368,7 +392,7 @@ elif selected == "Busca":
                 <a href='https://powo.science.kew.org/results?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>POWO</a>
                 <a href='https://www.ipni.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>IPNI</a>
                 <a href='https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>JSTOR Plants</a>
-		<a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
+		        <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
             </div>
             """, unsafe_allow_html=True)
                                     
