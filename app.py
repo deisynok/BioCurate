@@ -68,43 +68,34 @@ selected = option_menu(
 # 🏠 Página: Início
 # -----------------------------------------------
 if selected == "Início":
-    col1, col2 = st.columns([1,2])
-    with col1:
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
         st.image("logo.png", width=200)
     
-    with col2:
-        st.markdown("<h1 style='text-align: center;'>Bem-vindo ao BioCurate</h1>", unsafe_allow_html=True)
+    st.markdown("""
+        O **BioCurate** é uma ferramenta voltada à curadoria de coleções biológicas, com ênfase em herbários.  
+        Melhora a acessibilidade e a precisão na organização de dados, permitindo o cruzamento de informações por leitura de códigos de barras ou entrada manual.  
+        Também integra visualização de imagens e consultas externas a bases como GBIF, Reflora e SpeciesLink.
+        """)
     
     st.markdown("""
-        O BioCurate foi desenvolvido para facilitar o acesso, a curadoria e o uso de dados de coleções biológicas, especialmente em herbários. 
-        Ele permite que você busque informações rapidamente a partir de códigos das amostras ou números de tombo, visualize dados completos das amostras, 
-        acesse imagens vinculadas (caso estejam disponíveis) e faça buscas externas em bases como GBIF, Reflora e SpeciesLink.
-        Uso não comercial, apenas para fins de pesquisa científica.
-    """)
-    
-    st.markdown("""
-        ### Recursos do BioCurate:
+        ##### Recursos do BioCurate
 
         1. **📦 Base de Dados**  
-        Carregar automaticamente os **Metadados** (vinculada à planilha oficial do HUAM - https://docs.google.com/spreadsheets/d/1Pf9Vig397BEESIo7dR9dXnBQ-B4RneIc_I3DG6vTMYw) ou enviar sua própria base de dados no formato CSV, organizada no padrão **Darwin Core**. A base importada será utilizada em todas as buscas.
+        Carregue automaticamente a planilha oficial do HUAM ou envie sua própria base em formato CSV (padrão Darwin Core). Ela será usada em todas as buscas.
 
         2. **📊 Relatório**  
-        Gerar relatórios detalhados a partir dos dados cadastrados na base do HUAM. É possível consultar por **família**, **gênero** ou **espécie**, obtendo informações como o número total de amostras, lista de gêneros e espécies relacionadas e os registros completos encontrados. Os relatórios são úteis para análise, organização e planejamento de curadoria do acervo.
-        
+        Gere relatórios por família, gênero ou espécie, com contagem de amostras, lista de táxons e locais de armazenamento.
+
         3. **📋 Buscar Dados**  
-        Consultar informações detalhadas de cada amostra da base. A busca pode ser feita digitando o **número do tombo** ou capturando o **código de barras** com a câmera do dispositivo. O sistema exibe informações taxonômicas, local de armazenamento e dados de coleta.
+        Consulte dados detalhados da amostra pelo número de tombo ou código de barras: nome científico, local de coleta e armazenamento.
 
         4. **📷 Buscar Imagem**  
-        Buscar a imagem de uma amostra específica e enviá-la automaticamente para o serviço **Pl@ntNet**. Assim, você pode realizar uma **identificação automatizada da espécie**, recebendo uma lista de prováveis correspondências com nível de confiança.  
-        **Observação:** O cruzamento de dados e imagens funciona exclusivamente para amostras do HUAM, pois está vinculado ao Google Drive institucional, onde estão armazenadas as fotos oficiais do acervo.        
+        Visualize a exsicata e envie para o Pl@ntNet para identificação automática da espécie. Funciona apenas com amostras do HUAM, vinculadas ao Google Drive institucional.      
     """)
        
     st.markdown("""
         ### Sobre o BioCurate
-        O **BioCurate** oferece uma forma rápida e eficiente de cruzar informações da base de dados de coleções científicas por meio da leitura de códigos de barras ou entrada manual.
-
-        Ele melhora a acessibilidade e a precisão na gestão de coleções biológicas, facilitando a organização e a utilização de dados.
-
         Este projeto é uma iniciativa do **Herbário da Universidade Federal do Amazonas (HUAM)** e faz parte da pesquisa de doutorado de **Deisy Saraiva**, vinculada ao **Programa de Pós-Graduação BIONORTE – Rede de Biodiversidade e Biotecnologia da Amazônia Legal**. A pesquisa foca no uso de tecnologias para ampliar o acesso e a curadoria de coleções científicas, principalmente do Herbário do HUAM.
 
         Contato: deisysaraiva@ufam.edu.br
@@ -187,8 +178,9 @@ elif selected == "Base":
 elif selected == "Relatório":
     st.title("📊 Relatório de Dados")
     st.write(
-        "Nesta página, você pode gerar relatórios detalhados a partir da Base de Dados carregada na aba **BASE**. "
-        "Informe o nome da **família**, **gênero** ou **espécie** e clique em **Buscar** para obter estatísticas como quantidade de amostras, armário de armazenamento, lista de gêneros ou espécies relacionadas e visualizar os registros completos presentes na base de dados."
+        "Nesta página, é possível gerar relatórios a partir da base de dados carregada na aba **BASE**. "
+        "Informe o nome de uma **família**, **gênero** ou **espécie** e clique em **Buscar** para visualizar o número de amostras, "
+        "a localização na coleção, a lista de táxons relacionados e os registros completos disponíveis."
     )
 
     if st.session_state.df is None:
@@ -200,7 +192,7 @@ elif selected == "Relatório":
             todas_familias = df["Family"].dropna().unique()
             todas_familias.sort()
             st.success(f"**Total de famílias encontradas:** {len(todas_familias)}")
-            st.write(", ".join(todas_familias))
+            st.write(", ".join(todas_familias))        
 
         # 🔍 RELATÓRIO POR FAMÍLIA
         st.subheader("Consultar por Família")
@@ -214,11 +206,8 @@ elif selected == "Relatório":
                 locs = df_fam["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    locs_str = map(str, locs)
-                    st.markdown(
-                        f"<b>📦 Armário: {', '.join(sorted(locs_str))}</span></b>",
-                        unsafe_allow_html=True
-                    )
+                    locs_str = ", ".join(sorted(map(str, locs)))
+                    st.info(f"**Localização na coleção:** {locs_str}")
 
                 st.info(f"**Total de amostras:** {num_material}")
                 st.info(f"**Total de gêneros:** {len(generos)}")
@@ -243,11 +232,8 @@ elif selected == "Relatório":
                 locs = df_gen["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    locs_str = map(str, locs)
-                    st.markdown(
-                        f"<b>📦 Armário: {', '.join(sorted(locs_str))}</span></b>",
-                        unsafe_allow_html=True
-                    )
+                    locs_str = ", ".join(sorted(map(str, locs)))
+                    st.info(f"**Localização na coleção:** {locs_str}")
 
                 st.info(f"**Amostras do gênero:** {total_amostras}")
                 st.info(f"**Espécies dentro do gênero:** {len(especies_por_genero)}")
@@ -266,11 +252,8 @@ elif selected == "Relatório":
                 locs = df_esp["StorageLocation"].dropna().unique()
 
                 if len(locs) > 0:
-                    locs_str = map(str, locs)
-                    st.markdown(
-                        f"<b>📦 Armário: {', '.join(sorted(locs_str))}</span></b>",
-                        unsafe_allow_html=True
-                    )
+                    locs_str = ", ".join(sorted(map(str, locs)))
+                    st.info(f"**Localização na coleção:** {locs_str}")
 
                 st.info(f"**Total de amostras da espécie:** {total_especie}")
 
