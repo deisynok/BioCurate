@@ -156,7 +156,7 @@ elif selected == "Base":
     # Conexão automática com a planilha do HUAM
     conn = st.connection("gsheets", type=GSheetsConnection)
     df_base = conn.read(worksheet="Metadata", ttl="10m")
-    df_image = conn.read(worksheet="Image", ttl="10m")#####################
+    df_image = conn.read(worksheet="Image", ttl="10m")
     
     st.session_state.df_base = df_base
     st.session_state.df_image = df_image
@@ -184,7 +184,7 @@ elif selected == "Relatório":
     )
 
     # Carrega a base
-    if st.session_state.df is None:
+    if st.session_state.df_base is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
         df = st.session_state.df_base.copy()
@@ -295,7 +295,7 @@ elif selected == "Busca":
     st.write("Nesta página, você pode consultar informações detalhadas das amostras a partir do número de tombo. Digite o código para visualizar dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
     
     # Carrega a base
-    if st.session_state.df is None:
+    if st.session_state.df_base is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
         df = st.session_state.df_base.copy()
@@ -423,7 +423,7 @@ elif selected == "Imagem":
     )
     
     # Carrega a base
-    if st.session_state.df is None:
+    if st.session_state.df_image is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
         df = st.session_state.df_image.copy()
