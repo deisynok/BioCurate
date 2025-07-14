@@ -150,7 +150,7 @@ if selected == "Início":
 # Página: Base de Dados
 # -----------------------------------------------
 elif selected == "Base":
-    st.title("📦 Base de Dados")
+    st.subheader("📦 Base de Dados")
     st.subheader("Conexão automática com Base de Dados HUAM")
 
     # Conexão automática com a planilha do HUAM
@@ -176,7 +176,7 @@ elif selected == "Base":
 # Página: Relatório
 # -----------------------------------------------
 elif selected == "Relatório":
-    st.title("📊 Relatório de Dados")
+    st.subheader("📊 Relatório de Dados")
     st.write(
         "Nesta página, é possível gerar relatórios a partir da base de dados carregada na aba **BASE**. "
         "Informe o nome de uma **família**, **gênero** ou **espécie** e clique em **Buscar** para visualizar o número de amostras, "
@@ -291,7 +291,7 @@ elif selected == "Relatório":
 # Página: Buscar Dados
 # -----------------------------------------------
 elif selected == "Busca":
-    st.title("📋 Buscar Dados")
+    st.subheader("📋 Buscar Dados")
     st.write("Nesta página, você pode consultar informações detalhadas das amostras a partir do número de tombo. Digite o código para visualizar dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
     
     # Carrega a base
@@ -416,7 +416,7 @@ elif selected == "Busca":
 # Página: Buscar Imagem + Pl@ntNet
 # -----------------------------------------------
 elif selected == "Imagem":
-    st.title("📷 Buscar Imagem")
+    st.subheader("📷 Buscar Imagem")
     st.write(
         "Nesta página, você pode buscar imagens das amostras do HUAM vinculadas à da base de dados e utilizar o serviço **Pl@ntNet** para realizar a identificação automática da espécie. "
         "Basta informar o número do tombo para visualizar a imagem da exsicata e receber sugestões de identificação botânica."
