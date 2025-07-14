@@ -310,7 +310,7 @@ elif selected == "Busca":
 
     # Botão de busca
     if st.button("🔍 Buscar"):
-        df = st.session_state.df.copy()
+        df = st.session_state.df_base.copy()
         col = 'CollectionCode'
         st.session_state.barcode_col = col
         code = codigo.strip().upper()
