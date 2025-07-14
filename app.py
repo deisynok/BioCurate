@@ -1,5 +1,5 @@
 # -----------------------------------------------
-# 📚 BioCurate - Consulta e Identificação de Amostras Botânicas
+# BioCurate – Query and Identification of Botanical Specimens
 # -----------------------------------------------
 
 import streamlit as st
@@ -11,10 +11,11 @@ import requests
 from io import BytesIO
 from PIL import Image
 from streamlit_option_menu import option_menu
+import plotly.express as px
 
 
 # -----------------------------------------------
-# Configuração Geral
+# General Configuration
 # -----------------------------------------------
 
 st.set_page_config(page_title="BioCurate",  
@@ -22,7 +23,7 @@ st.set_page_config(page_title="BioCurate",
     layout="centered"
     )
 
-# Variáveis de sessão
+# Session variables
 if 'df' not in st.session_state:
     st.session_state.df = None
 if 'barcode_col' not in st.session_state:
@@ -30,11 +31,11 @@ if 'barcode_col' not in st.session_state:
 if 'img_folder' not in st.session_state:
     st.session_state.img_folder = ''
 
+# -----------------------------------------------
+# Responsive horizontal menu
+# -----------------------------------------------
 
-# -----------------------------------------------
-# Menu HORIZONTAL RESPONSIVO
-# -----------------------------------------------
-# Cria o navbar horizontal
+# Create horizontal navigation bar
 selected = option_menu(
     None,
     ["Início", "Base", "Relatório", "Busca", "Imagem"],
@@ -45,7 +46,7 @@ selected = option_menu(
     styles={
     "container": {
         "padding": "0!important",
-        "background-color": "#00A8A8"  # Azul esverdeado da lateral da logo
+        "background-color": "#00A8A8"  # Azul esverdeado - lateral da logo
     },
     "icon": {
         "color": "#FFFFFF",
@@ -56,27 +57,27 @@ selected = option_menu(
         "text-align": "center",
         "margin": "0px",
         "color": "#FFFFFF",
-        "--hover-color": "#B2DFDB"  # verde-água suave
+        "--hover-color": "#B2DFDB"  # Verde-água suave
     },
     "nav-link-selected": {
-        "background-color": "#388E3C"  # Verde escuro harmônico
+        "background-color": "#388E3C"  # Verde escuro
     },
 },
 )
 
 # -----------------------------------------------
-# 🏠 Página: Início
+# Página: Início
 # -----------------------------------------------
 if selected == "Início":
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    col1, col2 = st.columns([1, 2])
+    with col1:
         st.image("logo.png", width=200)
-    
-    st.markdown("""
-        O **BioCurate** é uma ferramenta voltada à curadoria de coleções biológicas, com ênfase em herbários.  
-        Melhora a acessibilidade e a precisão na organização de dados, permitindo o cruzamento de informações por leitura de códigos de barras ou entrada manual.  
-        Também integra visualização de imagens e consultas externas a bases como GBIF, Reflora e SpeciesLink.
-        """)
+    with col2:
+        st.markdown("""
+            O **BioCurate** é uma ferramenta voltada à curadoria de coleções biológicas, com ênfase em herbários.  
+            Melhora a acessibilidade e a precisão na organização de dados, permitindo o cruzamento de informações por leitura de códigos de barras ou entrada manual.  
+            Também integra visualização de imagens e consultas externas a bases como GBIF, Reflora e SpeciesLink.
+            """)
     
     st.markdown("""
         ##### Recursos do BioCurate
@@ -107,11 +108,10 @@ if selected == "Início":
 
         ### Sobre a Identificação Automática com Pl@ntNet
 
-        **BioCurate** também integra a tecnologia de identificação automática de espécies por imagens através da **API Pl@ntNet**. 
-        Para mais informações, acesse [Pl@ntNet](https://plantnet.org/).
-        
-        **Aviso:** A identificação automática é realizada utilizando a [API Pl@ntNet](https://plantnet.org/). Os resultados são gerados por um sistema de aprendizado de máquina e devem ser conferidos por um especialista.
-    
+        BioCurate integra a identificação automática de espécies por imagem via API Pl@ntNet.  
+        Os resultados são gerados por inteligência artificial e devem ser validados por um especialista.  
+        Mais informações em plantnet.org.  
+
         ---
 
         ### Sobre o padrão Darwin Core
@@ -124,11 +124,9 @@ if selected == "Início":
         - [Vídeo explicativo (YouTube)](https://www.youtube.com/embed/YC0DfctXs5Q)
     """)
 
-    with st.expander("Descrição dos Metadados da Base HUAM"):
+    with st.expander("Descrição dos Metadados Necessária na Base"):
         st.markdown("""
-            A base de dados oficial do HUAM segue o padrão **Darwin Core**, adotando campos fundamentais para curadoria, interoperabilidade e divulgação de informações botânicas.
-
-            **Campos principais:**
+            A base de dados a ser carregada deve seguir o padrão **Darwin Core**, adotando campos fundamentais para curadoria:
 
             - **CollectionCode:** Código único da coleção (número do tombo HUAM).
             - **CatalogNumber:** Número de catálogo interno da amostra.
@@ -149,18 +147,20 @@ if selected == "Início":
         """)
 
 # -----------------------------------------------
-# 📦 Página: Base de Dados
+# Página: Base de Dados
 # -----------------------------------------------
 elif selected == "Base":
     st.title("📦 Base de Dados")
-    st.subheader("Base de Dados HUAM: Conexão automática")
+    st.subheader("Conexão automática com Base de Dados HUAM")
 
     # Conexão automática com a planilha do HUAM
     conn = st.connection("gsheets", type=GSheetsConnection)
     df_base = conn.read(worksheet="Metadata", ttl="10m")
-
-    st.session_state.df = df_base
-    st.success("✔️ Base de Dados do Herbário HUAM carregada automaticamente.")
+    df_image = conn.read(worksheet="Image", ttl="10m")#####################
+    
+    st.session_state.df_base = df_base
+    st.session_state.df_image = df_image
+    st.success("✔️ Base de Dados do Herbário HUAM carregada!")
     st.write(df_base.head())
 
     # Opção para sobrescrever com upload CSV
@@ -168,12 +168,12 @@ elif selected == "Base":
     file = st.file_uploader("Selecione o arquivo CSV", type=["csv"])
     if file:
         df_base = pd.read_csv(file)
-        st.session_state.df = df_base
+        st.session_state.df_base = df_base
         st.success("Arquivo CSV carregado! Base atualizada.")
         st.write(df_base.head())
 
 # -----------------------------------------------
-# 📊 Página: Relatório
+# Página: Relatório
 # -----------------------------------------------
 elif selected == "Relatório":
     st.title("📊 Relatório de Dados")
@@ -183,18 +183,41 @@ elif selected == "Relatório":
         "a localização na coleção, a lista de táxons relacionados e os registros completos disponíveis."
     )
 
+    # Carrega a base
     if st.session_state.df is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
-        df = st.session_state.df.copy()
+        df = st.session_state.df_base.copy()
 
+        # Listar todas as famílias do banco de dados
         if st.button("Listar Todas as Famílias Botânicas"):
-            todas_familias = df["Family"].dropna().unique()
-            todas_familias.sort()
-            st.success(f"**Total de famílias encontradas:** {len(todas_familias)}")
-            st.write(", ".join(todas_familias))        
+            contagem_familias = df["Family"].value_counts().sort_values(ascending=True)
+            st.session_state["contagem_familias"] = contagem_familias  # salva na sessão
 
-        # 🔍 RELATÓRIO POR FAMÍLIA
+            st.success(f"**Total de famílias encontradas:** {len(contagem_familias)}")
+            st.write(", ".join(contagem_familias.index.tolist()))
+
+        # Botão para exibir o gráfico, somente se já houver contagem
+        if "contagem_familias" in st.session_state:
+            if st.button("📊 Exibir Gráfico Interativo por Família"):
+                contagem_familias = st.session_state["contagem_familias"]
+                df_plot = contagem_familias.reset_index()
+                df_plot.columns = ["Família", "Amostras"]
+
+                fig = px.bar(
+                    df_plot,
+                    x="Amostras",
+                    y="Família",
+                    orientation="h",
+                    title="Amostras por Família",
+                    labels={"Amostras": "Quantidade de Amostras", "Família": "Família"},
+                    color_discrete_sequence=["#388E3C"],
+                    height=max(400, len(df_plot) * 20)  # ajusta altura
+                )
+
+                st.plotly_chart(fig, use_container_width=True)        
+
+        # RELATÓRIO POR FAMÍLIA
         st.subheader("Consultar por Família")
         familia = st.text_input("Digite o nome da família:")
         if st.button("🔍 Buscar Família"):
@@ -220,7 +243,7 @@ elif selected == "Relatório":
             else:
                 st.warning("Digite o nome da família antes de buscar.")
 
-        # 🔍 RELATÓRIO POR GÊNERO
+        # RELATÓRIO POR GÊNERO
         st.subheader("Consultar por Gênero")
         genero = st.text_input("Digite o nome do gênero:")
         if st.button("🔍 Buscar Gênero"):
@@ -242,7 +265,7 @@ elif selected == "Relatório":
             else:
                 st.warning("Digite o nome do gênero antes de buscar.")
 
-        # 🔍 RELATÓRIO POR ESPÉCIE
+        # RELATÓRIO POR ESPÉCIE
         st.subheader("Consultar por Espécie")
         especie = st.text_input("Digite o nome científico da espécie:")
         if st.button("🔍 Buscar Espécie"):
@@ -265,18 +288,19 @@ elif selected == "Relatório":
             else:
                 st.warning("Digite o nome da espécie antes de buscar.")
 # -----------------------------------------------
-# 📋 Página: Buscar Dados
+# Página: Buscar Dados
 # -----------------------------------------------
 elif selected == "Busca":
     st.title("📋 Buscar Dados")
     st.write("Nesta página, você pode consultar informações detalhadas das amostras a partir do número de tombo. Digite o código para visualizar dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
-    if st.session_state.df is None:
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        df_base = conn.read(worksheet="Metadata", ttl="10m")
-        st.session_state.df = df_base
-        st.success("✔️ Base de Dados do Herbário HUAM carregada automaticamente.")
     
-    # Entrada manual
+    # Carrega a base
+    if st.session_state.df is None:
+        st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
+    else:
+        df = st.session_state.df_base.copy()
+
+    # Entrada manual do código
     code = ""
     codigo = st.text_input(
         "Digite o número do tombo",
@@ -389,7 +413,7 @@ elif selected == "Busca":
             st.error("Código não encontrado.")        
 
 # -----------------------------------------------
-# 📷 Página: Buscar Imagem (Pl@ntNet)
+# Página: Buscar Imagem + Pl@ntNet
 # -----------------------------------------------
 elif selected == "Imagem":
     st.title("📷 Buscar Imagem")
@@ -397,11 +421,12 @@ elif selected == "Imagem":
         "Nesta página, você pode buscar imagens das amostras do HUAM vinculadas à da base de dados e utilizar o serviço **Pl@ntNet** para realizar a identificação automática da espécie. "
         "Basta informar o número do tombo para visualizar a imagem da exsicata e receber sugestões de identificação botânica."
     )
-    st.subheader("Identificação da Espécie com Pl@ntNet")
-
-    # Conexão com a planilha
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read(worksheet="Image", ttl="10m")
+    
+    # Carrega a base
+    if st.session_state.df is None:
+        st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
+    else:
+        df = st.session_state.df_image.copy()
 
     def drive_link_to_direct(link):
         try:
@@ -422,7 +447,7 @@ elif selected == "Imagem":
     )
     
     # Buscar e Identificar (Pl@ntNet)
-    if st.button("🔍 Buscar e Identificar"):
+    if st.button("🔍 Buscar imagens e Identificar"):
         col_codigo = 'barcode'
         df[col_codigo] = df[col_codigo].astype(str).str.upper()
         codigo = codigo.strip().upper()
@@ -478,7 +503,7 @@ elif selected == "Imagem":
                                         if not results:
                                             st.info("Nenhuma correspondência encontrada.")
                                         else:
-                                            st.subheader("Resultados da identificação com a API do Pl@ntnet:")
+                                            st.subheader("Resultados da identificação com a API do Pl@ntnet")
                                             for res in results:
                                                 species = res['species']['scientificNameWithoutAuthor']
                                                 score = res['score']
