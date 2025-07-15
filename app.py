@@ -156,10 +156,8 @@ elif selected == "Base":
     # Conexão automática com a planilha do HUAM
     conn = st.connection("gsheets", type=GSheetsConnection)
     df_base = conn.read(worksheet="Metadata", ttl="10m")
-    df_image = conn.read(worksheet="Image", ttl="10m")
-    
+        
     st.session_state.df = df_base
-    st.session_state.im = df_image
     st.success("✔️ Base de Dados do Herbário HUAM carregada!")
     st.write(df_base.head())
 
@@ -423,11 +421,9 @@ elif selected == "Imagem":
     )
     
     # Carrega a base
-    if st.session_state.im is None:
-        st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
-    else:
-        im = st.session_state.im.copy()
-
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    im = conn.read(worksheet="Image", ttl="10m")
+    
     def drive_link_to_direct(link):
         try:
             parts = link.split("/d/")
