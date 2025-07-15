@@ -1,5 +1,14 @@
 # -----------------------------------------------
-# BioCurate – Query and Identification of Botanical Specimens
+# BioCurate – Curation and Identification of Botanical Specimens
+# Developed with Streamlit
+#
+# Author: Deisy Saraiva
+# Institution: Federal University of Amazonas (UFAM)
+# Program: PhD in Biodiversity and Biotechnology – BIONORTE
+# Contact: deisysaraiva@ufam.edu.br
+#
+# Creation date: 2025-06-25
+# Last updated: 2025-07-15
 # -----------------------------------------------
 
 import streamlit as st
@@ -22,6 +31,17 @@ st.set_page_config(page_title="BioCurate",
     page_icon="favicon.png",
     layout="centered"
     )
+
+# Toggle for language selection (PT as default)
+col1, col2, col3 = st.columns([5, 1, 1])
+with col3:
+    is_en = st.toggle("PT / EN", value=False)
+
+# If the selected language is English, redirect to the translated page
+if is_en:
+    from en_app import run as run_en
+    run_en()
+    st.stop()  # Stop execution of the code below
 
 # Session variables
 if 'df' not in st.session_state:
@@ -66,7 +86,7 @@ selected = option_menu(
 )
 
 # -----------------------------------------------
-# Página: Início
+# Home Page
 # -----------------------------------------------
 if selected == "Início":
     col1, col2 = st.columns([1, 2])
@@ -147,13 +167,13 @@ if selected == "Início":
         """)
 
 # -----------------------------------------------
-# Página: Base de Dados
+# Data Base Page
 # -----------------------------------------------
 elif selected == "Base":
     st.subheader("📦 Base de Dados")
     st.subheader("Conexão automática com Base de Dados HUAM")
 
-    # Conexão automática com a planilha do HUAM
+    # Automatic connection to the HUAM huam
     conn = st.connection("gsheets", type=GSheetsConnection)
     df_base = conn.read(worksheet="Metadata", ttl="10m")
         
@@ -161,33 +181,33 @@ elif selected == "Base":
     st.success("✔️ Base de Dados do Herbário HUAM carregada!")
     st.write(df_base.head())
 
-    # Opção para sobrescrever com upload CSV
+    # Upload CSV to overwrite existing data
     st.subheader("Ou envie sua própria base em formato DarwinCore")
     file = st.file_uploader("Selecione o arquivo CSV", type=["csv"])
     if file:
         df_base = pd.read_csv(file)
-        st.session_state.df_base = df_base
+        st.session_state.df = df_base
         st.success("Arquivo CSV carregado! Base atualizada.")
         st.write(df_base.head())
 
 # -----------------------------------------------
-# Página: Relatório
+# Report Page
 # -----------------------------------------------
 elif selected == "Relatório":
     st.subheader("📊 Relatório de Dados")
     st.write(
-        "Nesta página, é possível gerar relatórios a partir da base de dados carregada na aba **BASE**. "
+        "Gere relatórios a partir da base de dados carregada na aba **BASE**. "
         "Informe o nome de uma **família**, **gênero** ou **espécie** e clique em **Buscar** para visualizar o número de amostras, "
         "a localização na coleção, a lista de táxons relacionados e os registros completos disponíveis."
     )
 
-    # Carrega a base
+    # Load the database
     if st.session_state.df is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
         df = st.session_state.df.copy()
 
-        # Listar todas as famílias do banco de dados
+        # Show all botanical families in the dataset
         if st.button("Listar Todas as Famílias Botânicas"):
             contagem_familias = df["Family"].value_counts().sort_values(ascending=True)
             st.session_state["contagem_familias"] = contagem_familias  # salva na sessão
@@ -195,7 +215,7 @@ elif selected == "Relatório":
             st.success(f"**Total de famílias encontradas:** {len(contagem_familias)}")
             st.write(", ".join(contagem_familias.index.tolist()))
 
-        # Botão para exibir o gráfico, somente se já houver contagem
+        # Show chart button (only if data is available)
         if "contagem_familias" in st.session_state:
             if st.button("📊 Exibir Gráfico Interativo por Família"):
                 contagem_familias = st.session_state["contagem_familias"]
@@ -215,7 +235,7 @@ elif selected == "Relatório":
 
                 st.plotly_chart(fig, use_container_width=True)        
 
-        # RELATÓRIO POR FAMÍLIA
+        # Family Report
         st.subheader("Consultar por Família")
         familia = st.text_input("Digite o nome da família:")
         if st.button("🔍 Buscar Família"):
@@ -241,7 +261,7 @@ elif selected == "Relatório":
             else:
                 st.warning("Digite o nome da família antes de buscar.")
 
-        # RELATÓRIO POR GÊNERO
+        # Genus Report
         st.subheader("Consultar por Gênero")
         genero = st.text_input("Digite o nome do gênero:")
         if st.button("🔍 Buscar Gênero"):
@@ -263,7 +283,7 @@ elif selected == "Relatório":
             else:
                 st.warning("Digite o nome do gênero antes de buscar.")
 
-        # RELATÓRIO POR ESPÉCIE
+        # Species Report
         st.subheader("Consultar por Espécie")
         especie = st.text_input("Digite o nome científico da espécie:")
         if st.button("🔍 Buscar Espécie"):
@@ -285,20 +305,21 @@ elif selected == "Relatório":
                     st.warning("Nenhuma amostra encontrada para essa espécie.")
             else:
                 st.warning("Digite o nome da espécie antes de buscar.")
+
 # -----------------------------------------------
-# Página: Buscar Dados
+# Data Search Page
 # -----------------------------------------------
 elif selected == "Busca":
     st.subheader("📋 Buscar Dados")
-    st.write("Nesta página, você pode consultar informações detalhadas das amostras a partir do número de tombo. Digite o código para visualizar dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
+    st.write("Consulte informações detalhadas das amostras a partir do número de tombo. Digite o código para visualizar dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
     
-    # Carrega a base
+    # Load the database
     if st.session_state.df is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
         df = st.session_state.df.copy()
 
-    # Entrada manual do código
+    # Manual input of the code
     code = ""
     codigo = st.text_input(
         "Digite o número do tombo",
@@ -306,7 +327,7 @@ elif selected == "Busca":
         placeholder="Ex.: HUAM001245 ou somente 1245"
     )
 
-    # Botão de busca
+    # Lookup button
     if st.button("🔍 Buscar"):
         df = st.session_state.df.copy()
         col = 'CollectionCode'
@@ -318,13 +339,13 @@ elif selected == "Busca":
             df[col].str.endswith(code.zfill(6))
         ]
 
-        # Aqui salva o tombo na sessão!
+        # Save the specimen code to the session
         st.session_state["last_codigo"] = code
 
         if not result.empty:
             first = result.iloc[0]
 
-            # Nome científico + autor, com fallback
+            # Scientific name and author (with fallback)
             sci = first.get("ScientificName", "")
             sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
 
@@ -343,7 +364,7 @@ elif selected == "Busca":
                     unsafe_allow_html=True
                 )
 
-            # Família
+            # Family
             fam = first.get("Family")
             if pd.notna(fam):
                 st.markdown(
@@ -351,7 +372,7 @@ elif selected == "Busca":
                     unsafe_allow_html=True
                 )
 
-            # Local de armazenamento
+            # Storage Location
             loc = first.get("StorageLocation")
             if pd.notna(loc):
                 st.markdown(
@@ -359,7 +380,7 @@ elif selected == "Busca":
                     unsafe_allow_html=True
                 )
 
-            # Coletor + número de coleta
+            # Collector and collection number
             coll = first.get("Collector")
             addcoll = first.get("Addcoll")
             number = first.get("CollectorNumber")
@@ -371,7 +392,7 @@ elif selected == "Busca":
                     unsafe_allow_html=True
                 )
 
-            # Data de coleta
+            # Collection date
             date_parts = []
             for f in ["DayCollected", "MonthCollected", "YearCollected"]:
                 val = first.get(f)
@@ -383,10 +404,10 @@ elif selected == "Busca":
                     unsafe_allow_html=True
                 )
             
-            # Exibir linha completa da base
+            # View full dataset entry
             st.dataframe(result, use_container_width=True)       
             
-            # Busca externa pelo nome científico ou família
+            # External search by scientific name or family
             nome_busca = ""
             if isinstance(sci, str) and sci.strip():
                 nome_busca = sci.strip().replace(" ", "+")
@@ -411,18 +432,18 @@ elif selected == "Busca":
             st.error("Código não encontrado.")        
 
 # -----------------------------------------------
-# Página: Buscar Imagem + Pl@ntNet
+# Image Lookup + Pl@ntNet
 # -----------------------------------------------
 elif selected == "Imagem":
     st.subheader("📷 Buscar Imagem")
     st.write(
-        "Nesta página, você pode buscar imagens das amostras do HUAM vinculadas à da base de dados e utilizar o serviço **Pl@ntNet** para realizar a identificação automática da espécie. "
+        "Busque imagens das amostras do HUAM vinculadas à da base de dados e utilizar o serviço **Pl@ntNet** para realizar a identificação automática da espécie. "
         "Basta informar o número do tombo para visualizar a imagem da exsicata e receber sugestões de identificação botânica."
     )
     
-    # Carrega a base
+    # Load the database
     conn = st.connection("gsheets", type=GSheetsConnection)
-    im = conn.read(worksheet="Image", ttl="10m")
+    df = conn.read(worksheet="Image", ttl="10m")
     
     def drive_link_to_direct(link):
         try:
@@ -434,7 +455,7 @@ elif selected == "Imagem":
             pass
         return None
 
-    # Entrada manual (pré-preenchida)
+    # Manual input of the code
     code = ""
     codigo = st.text_input(
         "Digite o número do tombo",
@@ -442,16 +463,16 @@ elif selected == "Imagem":
         placeholder="Ex.: HUAM001245 ou somente 1245"
     )
     
-    # Buscar e Identificar (Pl@ntNet)
+    # Search and Identify (Pl@ntNet)
     if st.button("🔍 Buscar imagens e Identificar"):
         col_codigo = 'barcode'
-        im[col_codigo] = im[col_codigo].astype(str).str.upper()
+        df[col_codigo] = df[col_codigo].astype(str).str.upper()
         codigo = codigo.strip().upper()
 
-        resultado = im[
-            im[col_codigo].eq(codigo) |
-            im[col_codigo].str.endswith(codigo) |
-            im[col_codigo].str.endswith(codigo.zfill(6))
+        resultado = df[
+            df[col_codigo].eq(codigo) |
+            df[col_codigo].str.endswith(codigo) |
+            df[col_codigo].str.endswith(codigo.zfill(6))
         ]
 
         if resultado.empty:
@@ -461,18 +482,19 @@ elif selected == "Imagem":
         else: 
             st.session_state.result_image = resultado
             st.success(f"{len(resultado)} resultado(s) encontrado(s):")
-            # Mostrar o resultado Imagem se existir
+            
+            # Show the image result, if available
             if 'result_image' in st.session_state and st.session_state.result_image is not None:
                 for _, row in st.session_state.result_image.iterrows():
-
-                #for _, row in resultado.iterrows():
                     file_id = drive_link_to_direct(row['UrlExsicata'])
+                    
                     if file_id:
                         url = f"https://drive.google.com/uc?export=view&id={file_id}"
                         response = requests.get(url)
 
                         if response.status_code == 200:
                             content_type = response.headers.get('Content-Type', '')
+                            
                             if 'image' in content_type:
                                 try:
                                     from PIL import Image
@@ -482,7 +504,7 @@ elif selected == "Imagem":
                                     #img = img.rotate(-90, expand=True)
                                     st.image(img, caption=row['ArchiveName'])
 
-                                    # Envia para Pl@ntNet
+                                    # Send to Pl@ntNet
                                     API_KEY = st.secrets["plantnet"]["api_key"]
                                     PLANTNET_URL = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
 
@@ -521,5 +543,3 @@ elif selected == "Imagem":
                             st.warning("Não foi possível carregar a imagem do Drive.")
                     else:
                         st.warning("Link do Drive inválido.")
-
-    
