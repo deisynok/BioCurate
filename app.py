@@ -158,8 +158,8 @@ elif selected == "Base":
     df_base = conn.read(worksheet="Metadata", ttl="10m")
     df_image = conn.read(worksheet="Image", ttl="10m")
     
-    st.session_state.df_base = df_base
-    st.session_state.df_image = df_image
+    st.session_state.df = df_base
+    st.session_state.im = df_image
     st.success("✔️ Base de Dados do Herbário HUAM carregada!")
     st.write(df_base.head())
 
@@ -184,10 +184,10 @@ elif selected == "Relatório":
     )
 
     # Carrega a base
-    if st.session_state.df_base is None:
+    if st.session_state.df is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
-        df = st.session_state.df_base.copy()
+        df = st.session_state.df.copy()
 
         # Listar todas as famílias do banco de dados
         if st.button("Listar Todas as Famílias Botânicas"):
@@ -295,10 +295,10 @@ elif selected == "Busca":
     st.write("Nesta página, você pode consultar informações detalhadas das amostras a partir do número de tombo. Digite o código para visualizar dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
     
     # Carrega a base
-    if st.session_state.df_base is None:
+    if st.session_state.df is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
-        df = st.session_state.df_base.copy()
+        df = st.session_state.df.copy()
 
     # Entrada manual do código
     code = ""
@@ -310,7 +310,7 @@ elif selected == "Busca":
 
     # Botão de busca
     if st.button("🔍 Buscar"):
-        df = st.session_state.df_base.copy()
+        df = st.session_state.df.copy()
         col = 'CollectionCode'
         st.session_state.barcode_col = col
         code = codigo.strip().upper()
@@ -423,10 +423,10 @@ elif selected == "Imagem":
     )
     
     # Carrega a base
-    if st.session_state.df_image is None:
+    if st.session_state.im is None:
         st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
     else:
-        df = st.session_state.df_image.copy()
+        im = st.session_state.im.copy()
 
     def drive_link_to_direct(link):
         try:
@@ -449,23 +449,23 @@ elif selected == "Imagem":
     # Buscar e Identificar (Pl@ntNet)
     if st.button("🔍 Buscar imagens e Identificar"):
         col_codigo = 'barcode'
-        df[col_codigo] = df[col_codigo].astype(str).str.upper()
+        im[col_codigo] = im[col_codigo].astype(str).str.upper()
         codigo = codigo.strip().upper()
 
-        resultado = df[
-            df[col_codigo].eq(codigo) |
-            df[col_codigo].str.endswith(codigo) |
-            df[col_codigo].str.endswith(codigo.zfill(6))
+        resultado = im[
+            im[col_codigo].eq(codigo) |
+            im[col_codigo].str.endswith(codigo) |
+            im[col_codigo].str.endswith(codigo.zfill(6))
         ]
 
         if resultado.empty:
             st.session_state.result_image = None
             st.warning(f"Nenhuma exsicata encontrada para o tombo: {codigo}")
             
-        else:
+        else: 
             st.session_state.result_image = resultado
             st.success(f"{len(resultado)} resultado(s) encontrado(s):")
-            # 🚩 Mostrar o resultado Imagem se existir
+            # Mostrar o resultado Imagem se existir
             if 'result_image' in st.session_state and st.session_state.result_image is not None:
                 for _, row in st.session_state.result_image.iterrows():
 
