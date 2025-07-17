@@ -165,6 +165,11 @@ if selected == "Início":
 
             Esses campos garantem que a base de dados seja compatível com padrões de intercâmbio, como **GBIF**, **SpeciesLink** e **Reflora**, e viabilizam sua utilização em **sistemas digitais** como o BioCurate.
         """)
+    
+    #Supported by
+    st.markdown("---")
+    st.markdown(" ##### Apoio")
+    st.image("SupportedBy.png", use_container_width=True)
 
 # -----------------------------------------------
 # Data Base Page
@@ -328,7 +333,7 @@ elif selected == "Busca":
     )
 
     # Lookup button
-    if st.button("🔍 Buscar"):
+    if st.button("🔍 Buscar por tombo"):
         df = st.session_state.df.copy()
         col = 'CollectionCode'
         st.session_state.barcode_col = col
@@ -404,6 +409,14 @@ elif selected == "Busca":
                     unsafe_allow_html=True
                 )
             
+            # Internal Number (FieldNumber)
+            field_number = first.get("FieldNumber")
+            if pd.notna(field_number) and str(field_number).strip():
+                st.markdown(
+                    f"<b>Número interno (bloco):</b> {field_number}",
+                    unsafe_allow_html=True
+                )
+
             # View full dataset entry
             st.dataframe(result, use_container_width=True)       
             
@@ -429,7 +442,30 @@ elif selected == "Busca":
             """, unsafe_allow_html=True)
                                     
         else:
-            st.error("Código não encontrado.")        
+            st.error("Código não encontrado.")
+        
+    st.markdown("---")
+
+    # Entry for FieldNumber
+    num_interno = st.text_input(
+        "Digite o número interno (Número de Bloco)",
+        value="",
+        placeholder="Ex.: 321"
+    )
+
+    # Search Button
+    if st.button("🔍 Buscar por bloco"):
+        df = st.session_state.df.copy()
+        df["FieldNumber"] = df["FieldNumber"].astype(str).str.strip()
+
+        num_interno = num_interno.strip()
+        resultado_bloco = df[df["FieldNumber"] == num_interno]
+
+        if not resultado_bloco.empty:
+            st.success(f"{len(resultado_bloco)} amostra(s) encontrada(s) com Número interno '{num_interno}'.")
+            st.dataframe(resultado_bloco, use_container_width=True)
+        else:
+            st.warning("Nenhuma amostra encontrada com esse número interno.")                 
 
 # -----------------------------------------------
 # Image Lookup + Pl@ntNet
