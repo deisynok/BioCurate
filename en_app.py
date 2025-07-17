@@ -155,6 +155,10 @@ def run():
 
                 These fields ensure compatibility with biodiversity data-sharing standards such as **GBIF**, **SpeciesLink**, and **Reflora**, and enable use in **digital systems** like BioCurate.
                 """)
+        #Supported by
+        st.markdown("---")
+        st.markdown(" ##### Apoio")
+        st.image("SupportedBy.png", use_container_width=True)
 
     # -----------------------------------------------
     # Data Base Page
