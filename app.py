@@ -446,7 +446,7 @@ elif selected == "Busca":
         
     st.markdown("---")
 
-    # Entry for FieldNumber
+     # Entry for FieldNumber
     num_interno = st.text_input(
         "Digite o número interno (Número de Bloco)",
         value="",
@@ -455,9 +455,12 @@ elif selected == "Busca":
 
     # Search Button
     if st.button("🔍 Buscar por bloco"):
-        df = st.session_state.df.copy()
-        df["FieldNumber"] = df["FieldNumber"].astype(str).str.strip()
+    df = st.session_state.df.copy()
 
+    if "FieldNumber" not in df.columns:
+        st.warning("⚠️ Sua base de dados não possui a coluna 'FieldNumber'.")
+    else:
+        df["FieldNumber"] = df["FieldNumber"].astype(str).str.strip()
         num_interno = num_interno.strip()
         resultado_bloco = df[df["FieldNumber"] == num_interno]
 
@@ -465,7 +468,7 @@ elif selected == "Busca":
             st.success(f"{len(resultado_bloco)} amostra(s) encontrada(s) com Número interno '{num_interno}'.")
             st.dataframe(resultado_bloco, use_container_width=True)
         else:
-            st.warning("Nenhuma amostra encontrada com esse número interno.")                 
+            st.warning("Nenhuma amostra encontrada com esse número interno.")              
 
 # -----------------------------------------------
 # Image Lookup + Pl@ntNet
