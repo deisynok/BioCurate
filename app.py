@@ -457,18 +457,18 @@ elif selected == "Busca":
     if st.button("🔍 Buscar por bloco"):
     df = st.session_state.df.copy()
 
-    if "FieldNumber" not in df.columns:
-        st.warning("⚠️ Sua base de dados não possui a coluna 'FieldNumber'.")
-    else:
-        df["FieldNumber"] = df["FieldNumber"].astype(str).str.strip()
-        num_interno = num_interno.strip()
-        resultado_bloco = df[df["FieldNumber"] == num_interno]
-
-        if not resultado_bloco.empty:
-            st.success(f"{len(resultado_bloco)} amostra(s) encontrada(s) com Número interno '{num_interno}'.")
-            st.dataframe(resultado_bloco, use_container_width=True)
+        if "FieldNumber" not in df.columns:
+            st.warning("⚠️ Sua base de dados não possui a coluna 'FieldNumber'.")
         else:
-            st.warning("Nenhuma amostra encontrada com esse número interno.")              
+            df["FieldNumber"] = df["FieldNumber"].astype(str).str.strip()
+            num_interno = num_interno.strip()
+            resultado_bloco = df[df["FieldNumber"] == num_interno]
+
+            if not resultado_bloco.empty:
+                st.success(f"{len(resultado_bloco)} amostra(s) encontrada(s) com Número interno '{num_interno}'.")
+                st.dataframe(resultado_bloco, use_container_width=True)
+            else:
+                st.warning("Nenhuma amostra encontrada com esse número interno.")              
 
 # -----------------------------------------------
 # Image Lookup + Pl@ntNet
