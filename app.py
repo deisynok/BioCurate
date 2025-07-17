@@ -393,7 +393,7 @@ elif selected == "Busca":
             collected = f"{number or ''}".strip()
             if coll or collected:
                 st.markdown(
-                    f"<b>Coletor:</b> {coll or ''} {addcoll or ''} — Nº {collected}",
+                    f"<b>Coletor:</b> {coll or ''}  — Nº {collected} & {addcoll or ''}",
                     unsafe_allow_html=True
                 )
 
