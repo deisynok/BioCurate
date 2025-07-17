@@ -28,3 +28,10 @@ Display images directly from HUAM’s institutional Google Drive.
 Send images to the Pl@ntNet API to obtain species identification suggestions.
 Generate direct links to external databases: GBIF, SpeciesLink, Reflora, POWO, IPNI, JSTOR Plants, World Flora Online.
 
+---
+
+## Apoio / Supported by
+
+<img src="supported_by.png" alt="Supported by logos" style="width:100%; max-width:1000px;"/>
+
+
