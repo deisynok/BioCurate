@@ -32,6 +32,6 @@ Generate direct links to external databases: GBIF, SpeciesLink, Reflora, POWO, I
 
 ## Apoio / Supported by
 
-<img src="supported_by.png" alt="Supported by logos" style="width:100%; max-width:1000px;"/>
+![Apoio / Supported by](SupportedBy.png)
 
 
