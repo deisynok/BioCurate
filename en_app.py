@@ -157,7 +157,7 @@ def run():
                 """)
         #Supported by
         st.markdown("---")
-        st.markdown(" ##### Apoio")
+        st.markdown(" ##### Supported by")
         st.image("SupportedBy.png", use_container_width=True)
 
     # -----------------------------------------------
