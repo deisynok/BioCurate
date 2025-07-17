@@ -455,7 +455,7 @@ elif selected == "Busca":
 
     # Search Button
     if st.button("🔍 Buscar por bloco"):
-    df = st.session_state.df.copy()
+        df = st.session_state.df.copy()
 
         if "FieldNumber" not in df.columns:
             st.warning("⚠️ Sua base de dados não possui a coluna 'FieldNumber'.")
