@@ -264,11 +264,13 @@ def run():
                     so_genero = df_gen[df_gen["ScientificName"].isna() | (df_gen["ScientificName"].str.strip() == "")]
                     especies_por_genero = df_gen["ScientificName"].dropna().unique()
                     locs = df_gen["StorageLocation"].dropna().unique()
+                    familias = df_gen["Family"].dropna().unique()
 
                     if len(locs) > 0:
                         locs_str = ", ".join(sorted(map(str, locs)))
                         st.info(f"**Storage location:** {locs_str}")
-
+                    
+                    st.info(f"**Family:** {', '.join(sorted(map(str, familias)))}")
                     st.info(f"**Specimens in genus:** {total_amostras}")
                     st.info(f"**Species within genus:** {len(especies_por_genero)}")
                     st.write("**Species found:**")
@@ -284,11 +286,13 @@ def run():
                     df_esp = df[df["ScientificName"].str.upper() == especie.upper()]
                     total_especie = len(df_esp)
                     locs = df_esp["StorageLocation"].dropna().unique()
+                    familias = df_esp["Family"].dropna().unique()
 
                     if len(locs) > 0:
                         locs_str = ", ".join(sorted(map(str, locs)))
                         st.info(f"**Storage location:** {locs_str}")
-
+                    
+                    st.info(f"**Family:** {', '.join(sorted(map(str, familias)))}")
                     st.info(f"**Total specimens of the species:** {total_especie}")
 
                     if total_especie > 0:
