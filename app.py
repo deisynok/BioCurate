@@ -269,6 +269,7 @@ elif selected == "Relatório":
         # Genus Report
         st.subheader("Consultar por Gênero")
         genero = st.text_input("Digite o nome do gênero:")
+        
         if st.button("🔍 Buscar Gênero"):
             if genero:
                 df_gen = df[df["Genus"].str.upper() == genero.upper()]
@@ -276,11 +277,13 @@ elif selected == "Relatório":
                 so_genero = df_gen[df_gen["ScientificName"].isna() | (df_gen["ScientificName"].str.strip() == "")]
                 especies_por_genero = df_gen["ScientificName"].dropna().unique()
                 locs = df_gen["StorageLocation"].dropna().unique()
+                familias = df_gen["Family"].dropna().unique()
 
                 if len(locs) > 0:
                     locs_str = ", ".join(sorted(map(str, locs)))
                     st.info(f"**Localização na coleção:** {locs_str}")
 
+                st.info(f"**Família:** {', '.join(sorted(map(str, familias)))}")
                 st.info(f"**Amostras do gênero:** {total_amostras}")
                 st.info(f"**Espécies dentro do gênero:** {len(especies_por_genero)}")
                 st.write("**Espécies encontradas:**")
@@ -291,16 +294,19 @@ elif selected == "Relatório":
         # Species Report
         st.subheader("Consultar por Espécie")
         especie = st.text_input("Digite o nome científico da espécie:")
+       
         if st.button("🔍 Buscar Espécie"):
             if especie:
                 df_esp = df[df["ScientificName"].str.upper() == especie.upper()]
                 total_especie = len(df_esp)
                 locs = df_esp["StorageLocation"].dropna().unique()
+                familias = df_esp["Family"].dropna().unique()
 
                 if len(locs) > 0:
                     locs_str = ", ".join(sorted(map(str, locs)))
                     st.info(f"**Localização na coleção:** {locs_str}")
 
+                st.info(f"**Família:** {', '.join(sorted(map(str, familias)))}")
                 st.info(f"**Total de amostras da espécie:** {total_especie}")
 
                 if total_especie > 0:
