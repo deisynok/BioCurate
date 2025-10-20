@@ -214,7 +214,7 @@ elif selected == "Relatório":
 
         # Show all botanical families in the dataset
         if st.button("Listar Todas as Famílias Botânicas"):
-            contagem_familias = df["Family"].value_counts().sort_values(ascending=True)
+            contagem_familias = df["family"].value_counts().sort_values(ascending=True)
             st.session_state["contagem_familias"] = contagem_familias  # salva na sessão
 
             st.success(f"**Total de famílias encontradas:** {len(contagem_familias)}")
@@ -245,11 +245,11 @@ elif selected == "Relatório":
         familia = st.text_input("Digite o nome da família:")
         if st.button("🔍 Buscar Família"):
             if familia:
-                df_fam = df[df["Family"].str.upper() == familia.upper()]
+                df_fam = df[df["family"].str.upper() == familia.upper()]
                 num_material = len(df_fam)
-                generos = df_fam["Genus"].dropna().unique()
-                especies = df_fam["ScientificName"].dropna().unique()
-                locs = df_fam["StorageLocation"].dropna().unique()
+                generos = df_fam["genus"].dropna().unique()
+                especies = df_fam["scientificName"].dropna().unique()
+                locs = df_fam["dynamicProperties"].dropna().unique()
 
                 if len(locs) > 0:
                     locs_str = ", ".join(sorted(map(str, locs)))
@@ -272,12 +272,12 @@ elif selected == "Relatório":
         
         if st.button("🔍 Buscar Gênero"):
             if genero:
-                df_gen = df[df["Genus"].str.upper() == genero.upper()]
+                df_gen = df[df["genus"].str.upper() == genero.upper()]
                 total_amostras = len(df_gen)
-                so_genero = df_gen[df_gen["ScientificName"].isna() | (df_gen["ScientificName"].str.strip() == "")]
-                especies_por_genero = df_gen["ScientificName"].dropna().unique()
-                locs = df_gen["StorageLocation"].dropna().unique()
-                familias = df_gen["Family"].dropna().unique()
+                so_genero = df_gen[df_gen["scientificName"].isna() | (df_gen["scientificName"].str.strip() == "")]
+                especies_por_genero = df_gen["scientificName"].dropna().unique()
+                locs = df_gen["scientificName"].dropna().unique()
+                familias = df_gen["family"].dropna().unique()
 
                 if len(locs) > 0:
                     locs_str = ", ".join(sorted(map(str, locs)))
@@ -297,10 +297,10 @@ elif selected == "Relatório":
        
         if st.button("🔍 Buscar Espécie"):
             if especie:
-                df_esp = df[df["ScientificName"].str.upper() == especie.upper()]
+                df_esp = df[df["scientificName"].str.upper() == especie.upper()]
                 total_especie = len(df_esp)
-                locs = df_esp["StorageLocation"].dropna().unique()
-                familias = df_esp["Family"].dropna().unique()
+                locs = df_esp["dynamicProperties"].dropna().unique()
+                familias = df_esp["family"].dropna().unique()
 
                 if len(locs) > 0:
                     locs_str = ", ".join(sorted(map(str, locs)))
@@ -341,7 +341,7 @@ elif selected == "Busca":
     # Lookup button
     if st.button("🔍 Buscar por tombo"):
         df = st.session_state.df.copy()
-        col = 'CollectionCode'
+        col = 'collectionCode'
         st.session_state.barcode_col = col
         code = codigo.strip().upper()
         df[col] = df[col].astype(str).str.upper()
@@ -357,10 +357,10 @@ elif selected == "Busca":
             first = result.iloc[0]
 
             # Scientific name and author (with fallback)
-            sci = first.get("ScientificName", "")
+            sci = first.get("scientificName", "")
             sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
 
-            auth = first.get("ScientificNameAuthor", "")
+            auth = first.get("scientificNameAuthorship", "")
             if not isinstance(auth, str) or not auth.strip():
                 auth = ""
 
@@ -376,7 +376,7 @@ elif selected == "Busca":
                 )
 
             # Family
-            fam = first.get("Family")
+            fam = first.get("family")
             if pd.notna(fam):
                 st.markdown(
                     f"<div style='font-size: 18px;'>Família: {fam}</div>",
@@ -384,7 +384,7 @@ elif selected == "Busca":
                 )
 
             # Storage Location
-            loc = first.get("StorageLocation")
+            loc = first.get("dynamicProperties")
             if pd.notna(loc):
                 st.markdown(
                     f"<b>Localização na coleção:</b> {loc}",
@@ -392,9 +392,9 @@ elif selected == "Busca":
                 )
 
             # Collector and collection number
-            coll = first.get("Collector")
-            addcoll = first.get("Addcoll")
-            number = first.get("CollectorNumber")
+            coll = first.get("recordedBy")
+            addcoll = first.get("addCollector")
+            number = first.get("recordNumber")
                 
             collected = f"{number or ''}".strip()
             if coll or collected:
@@ -405,7 +405,7 @@ elif selected == "Busca":
 
             # Collection date
             date_parts = []
-            for f in ["DayCollected", "MonthCollected", "YearCollected"]:
+            for f in ["dayCollected", "monthCollected", "yearCollected"]:
                 val = first.get(f)
                 if pd.notna(val):
                     date_parts.append(str(int(val)))
@@ -416,7 +416,7 @@ elif selected == "Busca":
                 )
             
             # Internal Number (FieldNumber)
-            field_number = first.get("FieldNumber")
+            field_number = first.get("fieldNumber")
             if pd.notna(field_number) and str(field_number).strip():
                 st.markdown(
                     f"<b>Número interno (bloco):</b> {field_number}",
@@ -466,9 +466,9 @@ elif selected == "Busca":
         if "FieldNumber" not in df.columns:
             st.warning("⚠️ Sua base de dados não possui a coluna 'FieldNumber'.")
         else:
-            df["FieldNumber"] = df["FieldNumber"].astype(str).str.strip()
+            df["fieldNumber"] = df["fieldNumber"].astype(str).str.strip()
             num_interno = num_interno.strip()
-            resultado_bloco = df[df["FieldNumber"] == num_interno]
+            resultado_bloco = df[df["fieldNumber"] == num_interno]
 
             if not resultado_bloco.empty:
                 st.success(f"{len(resultado_bloco)} amostra(s) encontrada(s) com Número interno '{num_interno}'.")
