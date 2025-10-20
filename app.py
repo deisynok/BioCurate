@@ -47,7 +47,7 @@ if is_en:
 if 'df' not in st.session_state:
     st.session_state.df = None
 if 'barcode_col' not in st.session_state:
-    st.session_state.barcode_col = 'CollectionCode'
+    st.session_state.barcode_col = 'collectionCode'
 if 'img_folder' not in st.session_state:
     st.session_state.img_folder = ''
 
@@ -148,20 +148,18 @@ if selected == "Início":
         st.markdown("""
             A base de dados a ser carregada deve seguir o padrão **Darwin Core**, adotando campos fundamentais para curadoria:
 
-            - **CollectionCode:** Código único da coleção (número do tombo HUAM).
-            - **CatalogNumber:** Número de catálogo interno da amostra.
-            - **Collector:** Nome do coletor principal responsável pela amostra.
-            - **Addcoll:** Coletores adicionais envolvidos na coleta.
-            - **CollectorNumberPrefix:** Prefixo que antecede o número de coleta (quando houver).
-            - **CollectorNumber:** Número atribuído pelo coletor à amostra.
-            - **CollectorNumberSuffix:** Sufixo complementar ao número de coleta (quando houver).
-            - **DayCollected / MonthCollected / YearCollected:** Datas exatas de coleta da amostra.
-            - **Family:** Família botânica a que pertence a amostra.
-            - **ScientificName:** Nome científico completo (gênero + espécie + infraespécie, se aplicável).
-            - **Genus:** Nome do gênero botânico.
-            - **Species:** Epíteto específico (nome da espécie).
-            - **ScientificNameAuthor:** Autoridade taxonômica que descreveu o táxon.
-            - **StorageLocation:** Localização física da amostra na coleção (ex.: armário, prateleira).
+            - **collectionCode:** Código único da coleção (número do tombo HUAM).
+            - **catalogNumber:** Número de catálogo interno da amostra.
+            - **recordedBy:** Nome do coletor principal responsável pela amostra.
+            - **addCollector:** Coletores adicionais envolvidos na coleta.
+            - **recordNumber:** Número atribuído pelo coletor à amostra.
+            - **dayCollected / monthCollected / yearCollected:** Datas exatas de coleta da amostra.
+            - **family:** Família botânica a que pertence a amostra.
+            - **scientificName:** Nome científico completo (gênero + espécie + infraespécie, se aplicável).
+            - **genus:** Nome do gênero botânico.
+            - **specificEpithet:** Epíteto específico (nome da espécie).
+            - **scientificNameAuthorship:** Autoridade taxonômica que descreveu o táxon.
+            - **dynamicProperties:** Localização física da amostra na coleção (ex.: armário, prateleira).
 
             Esses campos garantem que a base de dados seja compatível com padrões de intercâmbio, como **GBIF**, **SpeciesLink** e **Reflora**, e viabilizam sua utilização em **sistemas digitais** como o BioCurate.
         """)
@@ -568,7 +566,7 @@ elif selected == "Imagem":
                                         else:
                                             st.subheader("Resultados da identificação com a API do Pl@ntnet")
                                             for res in results:
-                                                species = res['species']['scientificNameWithoutAuthor']
+                                                species = res['specificEpithet']['scientificNameWithoutAuthor']
                                                 score = res['score']
                                                 nome_busca = species.strip().replace(" ", "+")
                                                 st.write(
