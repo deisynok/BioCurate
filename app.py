@@ -571,7 +571,7 @@ elif selected == "Imagem":
                                             if 'family' in row and pd.notna(row['family']):
                                                 st.write(f"**Família:** {row['family']}")
                                             if 'scientificName' in row and pd.notna(row['scientificName']):
-                                                st.write(f"**Nome científico:** *{row['scientificName']}*")
+                                                st.write(f"**Nome:** *{row['scientificName']}*")
                                             
                                             st.write(f"**URL:** [Abrir imagem original]({row['UrlExsicata']})")
                                             
@@ -581,7 +581,7 @@ elif selected == "Imagem":
                                             st.download_button(
                                                 label="📥 Download da Imagem",
                                                 data=img_bytes.getvalue(),
-                                                file_name=f"{row['barcode']}_exsicata.jpg",
+                                                file_name=f"{row['barcode']}.jpg",
                                                 mime="image/jpeg"
                                             )
 
@@ -663,7 +663,7 @@ elif selected == "Imagem":
                 
                 with col_stat1:
                     especies_unicas = resultado_taxon['scientificName'].nunique()
-                    st.metric("Espécies diferentes", especies_unicas)
+                    st.metric("Nomes diferentes", especies_unicas)
                 
                 with col_stat2:
                     st.metric("Total de imagens", len(resultado_taxon))
