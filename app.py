@@ -498,16 +498,26 @@ elif selected == "Imagem":
             pass
         return None
 
-    # Manual input of the code
+    # Busca por tombo
+    st.subheader("🔍 Busca por Tombo")
     code = ""
     codigo = st.text_input(
         "Digite o número do tombo",
         value=code,
-        placeholder="Ex.: HUAM001245 ou somente 1245"
+        placeholder="Ex.: HUAM001245 ou somente 1245",
+        key="tombo_input"
     )
     
-    # Search and Identify (Pl@ntNet)
-    if st.button("🔍 Buscar imagens e Identificar"):
+    # Busca por táxon
+    st.subheader("🌿 Busca por Táxon")
+    taxon_input = st.text_input(
+        "Digite o nome da família ou espécie",
+        placeholder="Ex.: Fabaceae ou Mimosa pudica",
+        key="taxon_input"
+    )
+    
+    # Search and Identify (Pl@ntNet) - Busca por tombo
+    if st.button("🔍 Buscar por Tombo", key="buscar_tombo"):
         col_codigo = 'barcode'
         df[col_codigo] = df[col_codigo].astype(str).str.upper()
         codigo = codigo.strip().upper()
@@ -625,3 +635,100 @@ elif selected == "Imagem":
                             st.warning("Não foi possível carregar a imagem do Drive.")
                     else:
                         st.warning("Link do Drive inválido.")
+
+    # Busca por táxon
+    if st.button("🌿 Buscar por Táxon", key="buscar_taxon"):
+        if taxon_input:
+            taxon_busca = taxon_input.strip().upper()
+            
+            # Buscar na família e no nome científico
+            resultado_taxon = df[
+                (df['family'].astype(str).str.upper() == taxon_busca) |
+                (df['scientificName'].astype(str).str.upper() == taxon_busca) |
+                (df['family'].astype(str).str.upper().str.contains(taxon_busca)) |
+                (df['scientificName'].astype(str).str.upper().str.contains(taxon_busca))
+            ]
+            
+            if not resultado_taxon.empty:
+                st.success(f"🌿 {len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
+                
+                # Exibir as imagens em grid de 4 colunas
+                st.subheader("📸 Galeria de Imagens")
+                
+                # Organizar as imagens em linhas de 4 colunas
+                items = list(resultado_taxon.iterrows())
+                
+                for i in range(0, len(items), 4):
+                    cols = st.columns(4)
+                    for j in range(4):
+                        if i + j < len(items):
+                            _, row = items[i + j]
+                            file_id = drive_link_to_direct(row['UrlExsicata'])
+                            
+                            if file_id:
+                                url = f"https://drive.google.com/uc?export=view&id={file_id}"
+                                response = requests.get(url)
+                                
+                                if response.status_code == 200:
+                                    try:
+                                        img = Image.open(BytesIO(response.content))
+                                        
+                                        with cols[j]:
+                                            # Exibir imagem
+                                            st.image(
+                                                img,
+                                                caption=f"{row['barcode']}",
+                                                use_container_width=True
+                                            )
+                                            
+                                            # Informações compactas
+                                            st.caption(f"**{row['barcode']}**")
+                                            if pd.notna(row.get('family')):
+                                                st.caption(f"Fam: {row['family']}")
+                                            if pd.notna(row.get('scientificName')):
+                                                st.caption(f"*{row['scientificName']}*")
+                                            
+                                            # Link para imagem original
+                                            st.markdown(
+                                                f"[Abrir original]({row['UrlExsicata']})",
+                                                unsafe_allow_html=True
+                                            )
+                                            
+                                    except Exception as e:
+                                        with cols[j]:
+                                            st.error(f"Erro ao carregar imagem")
+                                else:
+                                    with cols[j]:
+                                        st.warning("Imagem não disponível")
+                            else:
+                                with cols[j]:
+                                    st.warning("Link inválido")
+                
+                # Estatísticas resumidas
+                st.markdown("---")
+                st.subheader("📊 Estatísticas do Táxon")
+                
+                col_stat1, col_stat2, col_stat3 = st.columns(3)
+                
+                with col_stat1:
+                    familias_unicas = resultado_taxon['family'].nunique()
+                    st.metric("Famílias diferentes", familias_unicas)
+                
+                with col_stat2:
+                    especies_unicas = resultado_taxon['scientificName'].nunique()
+                    st.metric("Espécies diferentes", especies_unicas)
+                
+                with col_stat3:
+                    st.metric("Total de imagens", len(resultado_taxon))
+                
+                # Lista de espécies encontradas
+                if especies_unicas > 0:
+                    st.write("**Espécies encontradas:**")
+                    especies_lista = resultado_taxon['scientificName'].dropna().unique()
+                    for especie in sorted(especies_lista):
+                        st.write(f"- {especie}")
+                        
+            else:
+                st.warning(f"Nenhuma imagem encontrada para o táxon: {taxon_input}")
+        else:
+            st.warning("Digite um nome de família ou espécie para buscar.")
