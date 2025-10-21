@@ -672,8 +672,11 @@ elif selected == "Imagem":
                 if especies_unicas > 0:
                     st.write("**Espécies encontradas:**")
                     especies_lista = resultado_taxon['scientificName'].dropna().unique()
+                    especies_texto = ""
                     for especie in sorted(especies_lista):
-                        st.write(f"- {especie}")
+                        especies_texto += f"• {especie}\n"
+    
+                    st.text(especies_texto)
                 
                 # Exibir as imagens em grid de 4 colunas
                 st.subheader("Galeria de Imagens")
