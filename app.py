@@ -544,8 +544,65 @@ elif selected == "Imagem":
                                     import io
 
                                     img = Image.open(io.BytesIO(response.content))
-                                    #img = img.rotate(-90, expand=True)
-                                    st.image(img, caption=row['ArchiveName'])
+                                    
+                                    # Criar duas colunas: uma para a imagem com zoom e outra para informações
+                                    col1, col2 = st.columns([2, 1])
+                                    
+                                    with col1:
+                                        st.subheader("Imagem da Exsicata")
+                                        st.info("🔍 Use o scroll do mouse para fazer zoom na imagem")
+                                        
+                                        # Converter PIL Image para numpy array para o OpenCV
+                                        img_array = np.array(img)
+                                        
+                                        # Exibir imagem com zoom interativo usando st.image
+                                        st.image(
+                                            img_array, 
+                                            caption=row['ArchiveName'],
+                                            use_column_width=True
+                                        )
+                                        
+                                        # Adicionar controles de zoom manual como alternativa
+                                        st.markdown("---")
+                                        st.subheader("Controles de Zoom")
+                                        zoom_level = st.slider(
+                                            "Nível de Zoom", 
+                                            min_value=1.0, 
+                                            max_value=3.0, 
+                                            value=1.0, 
+                                            step=0.1,
+                                            help="Ajuste o zoom da imagem"
+                                        )
+                                        
+                                        if zoom_level > 1.0:
+                                            # Calcular novas dimensões
+                                            width, height = img.size
+                                            new_width = int(width * zoom_level)
+                                            new_height = int(height * zoom_level)
+                                            
+                                            # Redimensionar a imagem
+                                            zoomed_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                                            st.image(
+                                                zoomed_img, 
+                                                caption=f"{row['ArchiveName']} (Zoom: {zoom_level}x)",
+                                                use_column_width=True
+                                            )
+                                    
+                                    with col2:
+                                        st.subheader("Informações da Amostra")
+                                        st.write(f"**Tombo:** {row['barcode']}")
+                                        st.write(f"**Arquivo:** {row['ArchiveName']}")
+                                        st.write(f"**URL:** [Abrir original]({row['UrlExsicata']})")
+                                        
+                                        # Botão para download da imagem
+                                        img_bytes = io.BytesIO()
+                                        img.save(img_bytes, format='JPEG', quality=95)
+                                        st.download_button(
+                                            label="📥 Download da Imagem",
+                                            data=img_bytes.getvalue(),
+                                            file_name=f"{row['barcode']}_exsicata.jpg",
+                                            mime="image/jpeg"
+                                        )
 
                                     # Send to Pl@ntNet
                                     API_KEY = st.secrets["plantnet"]["api_key"]
@@ -566,19 +623,25 @@ elif selected == "Imagem":
                                         else:
                                             st.subheader("Resultados da identificação com a API do Pl@ntnet")
                                             for res in results:
-                                                species = res['specificEpithet']['scientificNameWithoutAuthor']
-                                                score = res['score']
-                                                nome_busca = species.strip().replace(" ", "+")
+                                                # CORREÇÃO AQUI: Acessando a estrutura correta da resposta
+                                                species_data = res.get('species', {})
+                                                species_name = species_data.get('scientificNameWithoutAuthor', 'Nome não disponível')
+                                                score = res.get('score', 0)
+                                                
+                                                nome_busca = species_name.strip().replace(" ", "+")
                                                 st.write(
-                                                    f"- **{species}** — Confiança: {score:.2%} | "
+                                                    f"- **{species_name}** — Confiança: {score:.2%} | "
                                                     f"[Ver resultados desse taxon no GBIF](https://www.gbif.org/search?q={nome_busca})"
-                                                 )
+                                                )
                                             
                                     else:
-                                        st.error(f"Erro na API Pl@ntNet: {r.status_code}")
+                                        error_detail = r.json().get('message', 'Erro desconhecido')
+                                        st.error(f"Erro na API Pl@ntNet: {r.status_code} - {error_detail}")
 
                                 except Exception as e:
                                     st.error(f"Erro ao abrir/processar a imagem: {e}")
+                                    # Para debug, você pode descomentar a linha abaixo:
+                                    # st.write(f"Detalhes do erro: {str(e)}")
 
                             else:
                                 st.warning("O link não retornou uma imagem válida. Verifique o compartilhamento.")
