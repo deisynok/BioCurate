@@ -534,11 +534,6 @@ elif selected == "Imagem":
                 # Show the image result, if available
                 if 'result_image' in st.session_state and st.session_state.result_image is not None:
                     for _, row in st.session_state.result_image.iterrows():
-                        # Verificar novamente se não é da subpasta Mike (double check)
-                        if 'Fotos exsicatas Mike' in str(row['UrlExsicata']):
-                            st.warning("Imagem da subpasta 'Fotos exsicatas Mike' - não disponível para visualização")
-                            continue
-                            
                         file_id = drive_link_to_direct(row['UrlExsicata'])
                         
                         if file_id:
@@ -617,7 +612,7 @@ elif selected == "Imagem":
                                                     nome_busca = species_name.strip().replace(" ", "+")
                                                     st.write(
                                                         f"- **{species_name}** — Confiança: {score:.2%} | "
-                                                        f"[Ver resultados desse taxon no GBIF](https://www.gbif.org/search?q={nome_busca})"
+                                                        f"[Conferir taxon no GBIF](https://www.gbif.org/search?q={nome_busca})"
                                                     )
                                                 
                                         else:
@@ -658,9 +653,6 @@ elif selected == "Imagem":
                 (df['family'].astype(str).str.upper().str.contains(taxon_busca, na=False)) |
                 (df['scientificName'].astype(str).str.upper().str.contains(taxon_busca, na=False))
             ]
-            
-            # Filtrar novamente para garantir que não há imagens da subpasta Mike
-            resultado_taxon = resultado_taxon[~resultado_taxon['UrlExsicata'].str.contains('Fotos exsicatas Mike', na=False)]
             
             if not resultado_taxon.empty:
                 st.success(f"🌿 {len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
@@ -734,17 +726,13 @@ elif selected == "Imagem":
                 st.markdown("---")
                 st.subheader("📊 Estatísticas do Táxon")
                 
-                col_stat1, col_stat2, col_stat3 = st.columns(3)
+                col_stat1, col_stat2 = st.columns(2)
                 
                 with col_stat1:
-                    familias_unicas = resultado_taxon['family'].nunique()
-                    st.metric("Famílias diferentes", familias_unicas)
-                
-                with col_stat2:
                     especies_unicas = resultado_taxon['scientificName'].nunique()
                     st.metric("Espécies diferentes", especies_unicas)
                 
-                with col_stat3:
+                with col_stat2:
                     st.metric("Total de imagens", len(resultado_taxon))
                 
                 # Lista de espécies encontradas
