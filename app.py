@@ -500,14 +500,138 @@ elif selected == "Imagem":
 
     # Busca por tombo
     st.subheader("🔍 Busca por Tombo")
-    code = ""
     codigo = st.text_input(
         "Digite o número do tombo",
-        value=code,
+        value="",
         placeholder="Ex.: HUAM001245 ou somente 1245",
         key="tombo_input"
     )
     
+    # Botão de busca por tombo logo após o campo
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        if st.button("🔍 Buscar por Tombo", key="buscar_tombo", use_container_width=True):
+            if codigo:
+                col_codigo = 'barcode'
+                df[col_codigo] = df[col_codigo].astype(str).str.upper()
+                codigo_busca = codigo.strip().upper()
+
+                resultado = df[
+                    df[col_codigo].eq(codigo_busca) |
+                    df[col_codigo].str.endswith(codigo_busca) |
+                    df[col_codigo].str.endswith(codigo_busca.zfill(6))
+                ]
+
+                if resultado.empty:
+                    st.session_state.result_image = None
+                    st.warning(f"Nenhuma exsicata encontrada para o tombo: {codigo_busca}")
+                    
+                else: 
+                    st.session_state.result_image = resultado
+                    st.success(f"{len(resultado)} resultado(s) encontrado(s):")
+                    
+                    # Show the image result, if available
+                    if 'result_image' in st.session_state and st.session_state.result_image is not None:
+                        for _, row in st.session_state.result_image.iterrows():
+                            file_id = drive_link_to_direct(row['UrlExsicata'])
+                            
+                            if file_id:
+                                url = f"https://drive.google.com/uc?export=view&id={file_id}"
+                                response = requests.get(url)
+
+                                if response.status_code == 200:
+                                    content_type = response.headers.get('Content-Type', '')
+                                    
+                                    if 'image' in content_type:
+                                        try:
+                                            from PIL import Image
+                                            import io
+
+                                            img = Image.open(io.BytesIO(response.content))
+                                            
+                                            # Criar duas colunas: uma para a imagem e outra para informações
+                                            col1, col2 = st.columns([2, 1])
+                                            
+                                            with col1:
+                                                st.subheader("Imagem da Exsicata")
+                                                # Exibir imagem
+                                                st.image(
+                                                    img, 
+                                                    caption=row['ArchiveName'],
+                                                    use_container_width=True
+                                                )
+                                            
+                                            with col2:
+                                                st.subheader("Informações da Amostra")
+                                                st.write(f"**Tombo:** {row['barcode']}")
+                                                st.write(f"**Arquivo:** {row['ArchiveName']}")
+                                                
+                                                # Adicionar família e nome científico se disponíveis
+                                                if 'family' in row and pd.notna(row['family']):
+                                                    st.write(f"**Família:** {row['family']}")
+                                                if 'scientificName' in row and pd.notna(row['scientificName']):
+                                                    st.write(f"**Nome científico:** *{row['scientificName']}*")
+                                                
+                                                st.write(f"**URL:** [Abrir imagem original]({row['UrlExsicata']})")
+                                                
+                                                # Botão para download da imagem
+                                                img_bytes = io.BytesIO()
+                                                img.save(img_bytes, format='JPEG', quality=95)
+                                                st.download_button(
+                                                    label="📥 Download da Imagem",
+                                                    data=img_bytes.getvalue(),
+                                                    file_name=f"{row['barcode']}_exsicata.jpg",
+                                                    mime="image/jpeg"
+                                                )
+
+                                            # Send to Pl@ntNet
+                                            API_KEY = st.secrets["plantnet"]["api_key"]
+                                            PLANTNET_URL = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
+
+                                            files = {
+                                                "images": ('image.jpg', BytesIO(response.content), 'image/jpeg'),
+                                                "organs": (None, 'leaf')
+                                            }
+
+                                            st.info("Enviando para Pl@ntNet...")
+                                            r = requests.post(PLANTNET_URL, files=files)
+
+                                            if r.status_code == 200:
+                                                results = r.json().get("results", [])
+                                                if not results:
+                                                    st.info("Nenhuma correspondência encontrada.")
+                                                else:
+                                                    st.subheader("Resultados da identificação com a API do Pl@ntnet")
+                                                    for res in results:
+                                                        # CORREÇÃO AQUI: Acessando a estrutura correta da resposta
+                                                        species_data = res.get('species', {})
+                                                        species_name = species_data.get('scientificNameWithoutAuthor', 'Nome não disponível')
+                                                        score = res.get('score', 0)
+                                                        
+                                                        nome_busca = species_name.strip().replace(" ", "+")
+                                                        st.write(
+                                                            f"- **{species_name}** — Confiança: {score:.2%} | "
+                                                            f"[Ver resultados desse taxon no GBIF](https://www.gbif.org/search?q={nome_busca})"
+                                                        )
+                                                    
+                                            else:
+                                                error_detail = r.json().get('message', 'Erro desconhecido')
+                                                st.error(f"Erro na API Pl@ntNet: {r.status_code} - {error_detail}")
+
+                                        except Exception as e:
+                                            st.error(f"Erro ao abrir/processar a imagem: {e}")
+                                            # Para debug, você pode descomentar a linha abaixo:
+                                            # st.write(f"Detalhes do erro: {str(e)}")
+
+                                    else:
+                                        st.warning("O link não retornou uma imagem válida. Verifique o compartilhamento.")
+                                else:
+                                    st.warning("Não foi possível carregar a imagem do Drive.")
+                            else:
+                                st.warning("Link do Drive inválido.")
+            else:
+                st.warning("Digite um número de tombo para buscar.")
+
     # Busca por táxon
     st.subheader("🌿 Busca por Táxon")
     taxon_input = st.text_input(
@@ -516,219 +640,107 @@ elif selected == "Imagem":
         key="taxon_input"
     )
     
-    # Search and Identify (Pl@ntNet) - Busca por tombo
-    if st.button("🔍 Buscar por Tombo", key="buscar_tombo"):
-        col_codigo = 'barcode'
-        df[col_codigo] = df[col_codigo].astype(str).str.upper()
-        codigo = codigo.strip().upper()
-
-        resultado = df[
-            df[col_codigo].eq(codigo) |
-            df[col_codigo].str.endswith(codigo) |
-            df[col_codigo].str.endswith(codigo.zfill(6))
-        ]
-
-        if resultado.empty:
-            st.session_state.result_image = None
-            st.warning(f"Nenhuma exsicata encontrada para o tombo: {codigo}")
-            
-        else: 
-            st.session_state.result_image = resultado
-            st.success(f"{len(resultado)} resultado(s) encontrado(s):")
-            
-            # Show the image result, if available
-            if 'result_image' in st.session_state and st.session_state.result_image is not None:
-                for _, row in st.session_state.result_image.iterrows():
-                    file_id = drive_link_to_direct(row['UrlExsicata'])
+    # Botão de busca por táxon logo após o campo
+    col3, col4 = st.columns([3, 1])
+    with col3:
+        if st.button("🌿 Buscar por Táxon", key="buscar_taxon", use_container_width=True):
+            if taxon_input:
+                taxon_busca = taxon_input.strip().upper()
+                
+                # Buscar na família e no nome científico
+                resultado_taxon = df[
+                    (df['family'].astype(str).str.upper() == taxon_busca) |
+                    (df['scientificName'].astype(str).str.upper() == taxon_busca) |
+                    (df['family'].astype(str).str.upper().str.contains(taxon_busca, na=False)) |
+                    (df['scientificName'].astype(str).str.upper().str.contains(taxon_busca, na=False))
+                ]
+                
+                if not resultado_taxon.empty:
+                    st.success(f"🌿 {len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
                     
-                    if file_id:
-                        url = f"https://drive.google.com/uc?export=view&id={file_id}"
-                        response = requests.get(url)
-
-                        if response.status_code == 200:
-                            content_type = response.headers.get('Content-Type', '')
-                            
-                            if 'image' in content_type:
-                                try:
-                                    from PIL import Image
-                                    import io
-
-                                    img = Image.open(io.BytesIO(response.content))
-                                    
-                                    # Criar duas colunas: uma para a imagem e outra para informações
-                                    col1, col2 = st.columns([2, 1])
-                                    
-                                    with col1:
-                                        st.subheader("Imagem da Exsicata")
-                                        # Exibir imagem
-                                        st.image(
-                                            img, 
-                                            caption=row['ArchiveName'],
-                                            use_container_width=True
-                                        )
-                                    
-                                    with col2:
-                                        st.subheader("Informações da Amostra")
-                                        st.write(f"**Tombo:** {row['barcode']}")
-                                        st.write(f"**Arquivo:** {row['ArchiveName']}")
-                                        
-                                        # Adicionar família e nome científico se disponíveis
-                                        if 'family' in row and pd.notna(row['family']):
-                                            st.write(f"**Família:** {row['family']}")
-                                        if 'scientificName' in row and pd.notna(row['scientificName']):
-                                            st.write(f"**Nome científico:** *{row['scientificName']}*")
-                                        
-                                        st.write(f"**URL:** [Abrir imagem original]({row['UrlExsicata']})")
-                                        
-                                        # Botão para download da imagem
-                                        img_bytes = io.BytesIO()
-                                        img.save(img_bytes, format='JPEG', quality=95)
-                                        st.download_button(
-                                            label="📥 Download da Imagem",
-                                            data=img_bytes.getvalue(),
-                                            file_name=f"{row['barcode']}_exsicata.jpg",
-                                            mime="image/jpeg"
-                                        )
-
-                                    # Send to Pl@ntNet
-                                    API_KEY = st.secrets["plantnet"]["api_key"]
-                                    PLANTNET_URL = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
-
-                                    files = {
-                                        "images": ('image.jpg', BytesIO(response.content), 'image/jpeg'),
-                                        "organs": (None, 'leaf')
-                                    }
-
-                                    st.info("Enviando para Pl@ntNet...")
-                                    r = requests.post(PLANTNET_URL, files=files)
-
-                                    if r.status_code == 200:
-                                        results = r.json().get("results", [])
-                                        if not results:
-                                            st.info("Nenhuma correspondência encontrada.")
-                                        else:
-                                            st.subheader("Resultados da identificação com a API do Pl@ntnet")
-                                            for res in results:
-                                                # CORREÇÃO AQUI: Acessando a estrutura correta da resposta
-                                                species_data = res.get('species', {})
-                                                species_name = species_data.get('scientificNameWithoutAuthor', 'Nome não disponível')
-                                                score = res.get('score', 0)
-                                                
-                                                nome_busca = species_name.strip().replace(" ", "+")
-                                                st.write(
-                                                    f"- **{species_name}** — Confiança: {score:.2%} | "
-                                                    f"[Ver resultados desse taxon no GBIF](https://www.gbif.org/search?q={nome_busca})"
-                                                )
-                                            
-                                    else:
-                                        error_detail = r.json().get('message', 'Erro desconhecido')
-                                        st.error(f"Erro na API Pl@ntNet: {r.status_code} - {error_detail}")
-
-                                except Exception as e:
-                                    st.error(f"Erro ao abrir/processar a imagem: {e}")
-                                    # Para debug, você pode descomentar a linha abaixo:
-                                    # st.write(f"Detalhes do erro: {str(e)}")
-
-                            else:
-                                st.warning("O link não retornou uma imagem válida. Verifique o compartilhamento.")
-                        else:
-                            st.warning("Não foi possível carregar a imagem do Drive.")
-                    else:
-                        st.warning("Link do Drive inválido.")
-
-    # Busca por táxon
-    if st.button("🌿 Buscar por Táxon", key="buscar_taxon"):
-        if taxon_input:
-            taxon_busca = taxon_input.strip().upper()
-            
-            # Buscar na família e no nome científico
-            resultado_taxon = df[
-                (df['family'].astype(str).str.upper() == taxon_busca) |
-                (df['scientificName'].astype(str).str.upper() == taxon_busca) |
-                (df['family'].astype(str).str.upper().str.contains(taxon_busca)) |
-                (df['scientificName'].astype(str).str.upper().str.contains(taxon_busca))
-            ]
-            
-            if not resultado_taxon.empty:
-                st.success(f"🌿 {len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
-                
-                # Exibir as imagens em grid de 4 colunas
-                st.subheader("📸 Galeria de Imagens")
-                
-                # Organizar as imagens em linhas de 4 colunas
-                items = list(resultado_taxon.iterrows())
-                
-                for i in range(0, len(items), 4):
-                    cols = st.columns(4)
-                    for j in range(4):
-                        if i + j < len(items):
-                            _, row = items[i + j]
-                            file_id = drive_link_to_direct(row['UrlExsicata'])
-                            
-                            if file_id:
-                                url = f"https://drive.google.com/uc?export=view&id={file_id}"
-                                response = requests.get(url)
+                    # Exibir as imagens em grid de 4 colunas
+                    st.subheader("📸 Galeria de Imagens")
+                    
+                    # Organizar as imagens em linhas de 4 colunas
+                    items = list(resultado_taxon.iterrows())
+                    
+                    for i in range(0, len(items), 4):
+                        cols = st.columns(4)
+                        for j in range(4):
+                            if i + j < len(items):
+                                _, row = items[i + j]
+                                file_id = drive_link_to_direct(row['UrlExsicata'])
                                 
-                                if response.status_code == 200:
-                                    try:
-                                        img = Image.open(BytesIO(response.content))
-                                        
-                                        with cols[j]:
-                                            # Exibir imagem
-                                            st.image(
-                                                img,
-                                                caption=f"{row['barcode']}",
-                                                use_container_width=True
-                                            )
+                                if file_id:
+                                    url = f"https://drive.google.com/uc?export=view&id={file_id}"
+                                    
+                                    with cols[j]:
+                                        try:
+                                            # Fazer download da imagem
+                                            response = requests.get(url, timeout=10)
                                             
-                                            # Informações compactas
-                                            st.caption(f"**{row['barcode']}**")
-                                            if pd.notna(row.get('family')):
-                                                st.caption(f"Fam: {row['family']}")
-                                            if pd.notna(row.get('scientificName')):
-                                                st.caption(f"*{row['scientificName']}*")
-                                            
-                                            # Link para imagem original
-                                            st.markdown(
-                                                f"[Abrir original]({row['UrlExsicata']})",
-                                                unsafe_allow_html=True
-                                            )
-                                            
-                                    except Exception as e:
-                                        with cols[j]:
-                                            st.error(f"Erro ao carregar imagem")
+                                            if response.status_code == 200:
+                                                # Verificar se é realmente uma imagem
+                                                if 'image' in response.headers.get('Content-Type', ''):
+                                                    img = Image.open(BytesIO(response.content))
+                                                    
+                                                    # Exibir imagem
+                                                    st.image(
+                                                        img,
+                                                        caption=f"{row['barcode']}",
+                                                        use_container_width=True
+                                                    )
+                                                    
+                                                    # Informações compactas
+                                                    st.caption(f"**{row['barcode']}**")
+                                                    if pd.notna(row.get('family')):
+                                                        st.caption(f"Fam: {row['family']}")
+                                                    if pd.notna(row.get('scientificName')):
+                                                        st.caption(f"*{row['scientificName']}*")
+                                                    
+                                                    # Link para imagem original
+                                                    st.markdown(
+                                                        f"[Abrir original]({row['UrlExsicata']})",
+                                                        unsafe_allow_html=True
+                                                    )
+                                                else:
+                                                    st.error("Link não é uma imagem")
+                                            else:
+                                                st.warning("Imagem não disponível")
+                                                
+                                        except requests.exceptions.Timeout:
+                                            st.warning("Timeout ao carregar")
+                                        except Exception as e:
+                                            st.error(f"Erro ao carregar")
                                 else:
                                     with cols[j]:
-                                        st.warning("Imagem não disponível")
-                            else:
-                                with cols[j]:
-                                    st.warning("Link inválido")
-                
-                # Estatísticas resumidas
-                st.markdown("---")
-                st.subheader("📊 Estatísticas do Táxon")
-                
-                col_stat1, col_stat2, col_stat3 = st.columns(3)
-                
-                with col_stat1:
-                    familias_unicas = resultado_taxon['family'].nunique()
-                    st.metric("Famílias diferentes", familias_unicas)
-                
-                with col_stat2:
-                    especies_unicas = resultado_taxon['scientificName'].nunique()
-                    st.metric("Espécies diferentes", especies_unicas)
-                
-                with col_stat3:
-                    st.metric("Total de imagens", len(resultado_taxon))
-                
-                # Lista de espécies encontradas
-                if especies_unicas > 0:
-                    st.write("**Espécies encontradas:**")
-                    especies_lista = resultado_taxon['scientificName'].dropna().unique()
-                    for especie in sorted(especies_lista):
-                        st.write(f"- {especie}")
-                        
+                                        st.warning("Link inválido")
+                    
+                    # Estatísticas resumidas
+                    st.markdown("---")
+                    st.subheader("📊 Estatísticas do Táxon")
+                    
+                    col_stat1, col_stat2, col_stat3 = st.columns(3)
+                    
+                    with col_stat1:
+                        familias_unicas = resultado_taxon['family'].nunique()
+                        st.metric("Famílias diferentes", familias_unicas)
+                    
+                    with col_stat2:
+                        especies_unicas = resultado_taxon['scientificName'].nunique()
+                        st.metric("Espécies diferentes", especies_unicas)
+                    
+                    with col_stat3:
+                        st.metric("Total de imagens", len(resultado_taxon))
+                    
+                    # Lista de espécies encontradas
+                    if especies_unicas > 0:
+                        st.write("**Espécies encontradas:**")
+                        especies_lista = resultado_taxon['scientificName'].dropna().unique()
+                        for especie in sorted(especies_lista):
+                            st.write(f"- {especie}")
+                            
+                else:
+                    st.warning(f"Nenhuma imagem encontrada para o táxon: {taxon_input}")
             else:
-                st.warning(f"Nenhuma imagem encontrada para o táxon: {taxon_input}")
-        else:
-            st.warning("Digite um nome de família ou espécie para buscar.")
+                st.warning("Digite um nome de família ou espécie para buscar.")
