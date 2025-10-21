@@ -545,54 +545,30 @@ elif selected == "Imagem":
 
                                     img = Image.open(io.BytesIO(response.content))
                                     
-                                    # Criar duas colunas: uma para a imagem com zoom e outra para informações
+                                    # Criar duas colunas: uma para a imagem e outra para informações
                                     col1, col2 = st.columns([2, 1])
                                     
                                     with col1:
                                         st.subheader("Imagem da Exsicata")
-                                        st.info("🔍 Use o scroll do mouse para fazer zoom na imagem")
-                                        
-                                        # Converter PIL Image para numpy array para o OpenCV
-                                        img_array = np.array(img)
-                                        
-                                        # Exibir imagem com zoom interativo usando st.image
+                                        # Exibir imagem
                                         st.image(
-                                            img_array, 
+                                            img, 
                                             caption=row['ArchiveName'],
-                                            use_column_width=True
+                                            use_container_width=True
                                         )
-                                        
-                                        # Adicionar controles de zoom manual como alternativa
-                                        st.markdown("---")
-                                        st.subheader("Controles de Zoom")
-                                        zoom_level = st.slider(
-                                            "Nível de Zoom", 
-                                            min_value=1.0, 
-                                            max_value=3.0, 
-                                            value=1.0, 
-                                            step=0.1,
-                                            help="Ajuste o zoom da imagem"
-                                        )
-                                        
-                                        if zoom_level > 1.0:
-                                            # Calcular novas dimensões
-                                            width, height = img.size
-                                            new_width = int(width * zoom_level)
-                                            new_height = int(height * zoom_level)
-                                            
-                                            # Redimensionar a imagem
-                                            zoomed_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                                            st.image(
-                                                zoomed_img, 
-                                                caption=f"{row['ArchiveName']} (Zoom: {zoom_level}x)",
-                                                use_column_width=True
-                                            )
                                     
                                     with col2:
                                         st.subheader("Informações da Amostra")
                                         st.write(f"**Tombo:** {row['barcode']}")
                                         st.write(f"**Arquivo:** {row['ArchiveName']}")
-                                        st.write(f"**URL:** [Abrir original]({row['UrlExsicata']})")
+                                        
+                                        # Adicionar família e nome científico se disponíveis
+                                        if 'family' in row and pd.notna(row['family']):
+                                            st.write(f"**Família:** {row['family']}")
+                                        if 'scientificName' in row and pd.notna(row['scientificName']):
+                                            st.write(f"**Nome científico:** *{row['scientificName']}*")
+                                        
+                                        st.write(f"**URL:** [Abrir imagem original]({row['UrlExsicata']})")
                                         
                                         # Botão para download da imagem
                                         img_bytes = io.BytesIO()
