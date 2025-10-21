@@ -604,7 +604,6 @@ elif selected == "Imagem":
                                             else:
                                                 st.subheader("Resultados da identificação com a API do Pl@ntnet")
                                                 for res in results:
-                                                    # CORREÇÃO AQUI: Acessando a estrutura correta da resposta
                                                     species_data = res.get('species', {})
                                                     species_name = species_data.get('scientificNameWithoutAuthor', 'Nome não disponível')
                                                     score = res.get('score', 0)
@@ -658,8 +657,7 @@ elif selected == "Imagem":
                 st.success(f"{len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
                 
                 # Estatísticas resumidas
-                st.markdown("---")
-                st.subheader("📊 Dados do Táxon")
+                st.subheader("Dados do Táxon")
                 
                 col_stat1, col_stat2 = st.columns(2)
                 
@@ -676,12 +674,7 @@ elif selected == "Imagem":
                     especies_lista = resultado_taxon['scientificName'].dropna().unique()
                     for especie in sorted(especies_lista):
                         st.write(f"- {especie}")
-                        
-            else:
-                st.warning(f"Nenhuma imagem encontrada para o táxon: {taxon_input}")
-        else:
-            st.warning("Digite um nome de família ou espécie para buscar.")
-
+                
                 # Exibir as imagens em grid de 4 colunas
                 st.subheader("Galeria de Imagens")
                 
@@ -694,12 +687,6 @@ elif selected == "Imagem":
                         if i + j < len(items):
                             _, row = items[i + j]
                             
-                            # Verificação final para garantir que não é da subpasta Mike
-                            if 'Fotos exsicatas Mike' in str(row['UrlExsicata']):
-                                with cols[j]:
-                                    st.warning("Imagem não disponível")
-                                continue
-                                
                             file_id = drive_link_to_direct(row['UrlExsicata'])
                             
                             if file_id:
@@ -746,3 +733,8 @@ elif selected == "Imagem":
                             else:
                                 with cols[j]:
                                     st.warning("Link inválido")
+                        
+            else:
+                st.warning(f"Nenhuma imagem encontrada para o táxon: {taxon_input}")
+        else:
+            st.warning("Digite um nome de família ou espécie para buscar.")
