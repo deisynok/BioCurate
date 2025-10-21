@@ -656,7 +656,8 @@ elif selected == "Imagem":
             
             if not resultado_taxon.empty:
                 st.success(f"{len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
-                 # Estatísticas resumidas
+                
+                # Estatísticas resumidas
                 st.markdown("---")
                 st.subheader("📊 Dados do Táxon")
                 
@@ -681,7 +682,6 @@ elif selected == "Imagem":
         else:
             st.warning("Digite um nome de família ou espécie para buscar.")
 
-                
                 # Exibir as imagens em grid de 4 colunas
                 st.subheader("Galeria de Imagens")
                 
