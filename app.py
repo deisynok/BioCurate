@@ -489,7 +489,7 @@ elif selected == "Imagem":
     df = conn.read(worksheet="Image", ttl="10m")
     
     # Filtrar para remover imagens da subpasta "Fotos exsicatas Mike"
-    df = df[~df['UrlExsicata'].str.contains('Fotos exsicatas Mike', na=False)]
+    df = df[~df['Subpasta'].str.contains('Fotos exsicatas Mike', na=False)]
     
     def drive_link_to_direct(link):
         try:
