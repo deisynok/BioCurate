@@ -642,7 +642,7 @@ elif selected == "Imagem":
     )
     
     # Botão de busca por táxon
-    if st.button("🌿 Buscar por Táxon", key="buscar_taxon", use_container_width=True):
+    if st.button("Buscar por Táxon", key="buscar_taxon", use_container_width=True):
         if taxon_input:
             taxon_busca = taxon_input.strip().upper()
             
@@ -655,10 +655,35 @@ elif selected == "Imagem":
             ]
             
             if not resultado_taxon.empty:
-                st.success(f"🌿 {len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
+                st.success(f"{len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
+                 # Estatísticas resumidas
+                st.markdown("---")
+                st.subheader("📊 Dados do Táxon")
+                
+                col_stat1, col_stat2 = st.columns(2)
+                
+                with col_stat1:
+                    especies_unicas = resultado_taxon['scientificName'].nunique()
+                    st.metric("Espécies diferentes", especies_unicas)
+                
+                with col_stat2:
+                    st.metric("Total de imagens", len(resultado_taxon))
+                
+                # Lista de espécies encontradas
+                if especies_unicas > 0:
+                    st.write("**Espécies encontradas:**")
+                    especies_lista = resultado_taxon['scientificName'].dropna().unique()
+                    for especie in sorted(especies_lista):
+                        st.write(f"- {especie}")
+                        
+            else:
+                st.warning(f"Nenhuma imagem encontrada para o táxon: {taxon_input}")
+        else:
+            st.warning("Digite um nome de família ou espécie para buscar.")
+
                 
                 # Exibir as imagens em grid de 4 colunas
-                st.subheader("📸 Galeria de Imagens")
+                st.subheader("Galeria de Imagens")
                 
                 # Organizar as imagens em linhas de 4 colunas
                 items = list(resultado_taxon.iterrows())
@@ -721,28 +746,3 @@ elif selected == "Imagem":
                             else:
                                 with cols[j]:
                                     st.warning("Link inválido")
-                
-                # Estatísticas resumidas
-                st.markdown("---")
-                st.subheader("📊 Estatísticas do Táxon")
-                
-                col_stat1, col_stat2 = st.columns(2)
-                
-                with col_stat1:
-                    especies_unicas = resultado_taxon['scientificName'].nunique()
-                    st.metric("Espécies diferentes", especies_unicas)
-                
-                with col_stat2:
-                    st.metric("Total de imagens", len(resultado_taxon))
-                
-                # Lista de espécies encontradas
-                if especies_unicas > 0:
-                    st.write("**Espécies encontradas:**")
-                    especies_lista = resultado_taxon['scientificName'].dropna().unique()
-                    for especie in sorted(especies_lista):
-                        st.write(f"- {especie}")
-                        
-            else:
-                st.warning(f"Nenhuma imagem encontrada para o táxon: {taxon_input}")
-        else:
-            st.warning("Digite um nome de família ou espécie para buscar.")
