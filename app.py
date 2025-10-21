@@ -656,7 +656,7 @@ elif selected == "Imagem":
             if not resultado_taxon.empty:
                 st.success(f"{len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
                 
-                # Estatísticas resumidas
+                ### Estatísticas resumidas
                 st.subheader("Dados do Táxon")
                 
                 col_stat1, col_stat2 = st.columns(2)
@@ -670,7 +670,7 @@ elif selected == "Imagem":
                 
                 # Lista de espécies encontradas
                 if especies_unicas > 0:
-                    st.write("**Espécies encontradas:**")
+                    st.write("**Nomes encontrados:**")
                     especies_lista = resultado_taxon['scientificName'].dropna().unique()
                     especies_texto = ""
                     for especie in sorted(especies_lista):
@@ -678,7 +678,7 @@ elif selected == "Imagem":
     
                     st.text(especies_texto)
                 
-                # Exibir as imagens em grid de 4 colunas
+                ### Exibir as imagens em grid de 4 colunas
                 st.subheader("Galeria de Imagens")
                 
                 # Organizar as imagens em linhas de 4 colunas
