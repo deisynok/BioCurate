@@ -488,6 +488,9 @@ elif selected == "Imagem":
     conn = st.connection("gsheets", type=GSheetsConnection)
     df = conn.read(worksheet="Image", ttl="10m")
     
+    # Filtrar para remover imagens da subpasta "Fotos exsicatas Mike"
+    df = df[~df['UrlExsicata'].str.contains('Fotos exsicatas Mike', na=False)]
+    
     def drive_link_to_direct(link):
         try:
             parts = link.split("/d/")
@@ -533,6 +536,11 @@ elif selected == "Imagem":
                     # Show the image result, if available
                     if 'result_image' in st.session_state and st.session_state.result_image is not None:
                         for _, row in st.session_state.result_image.iterrows():
+                            # Verificar novamente se não é da subpasta Mike (double check)
+                            if 'Fotos exsicatas Mike' in str(row['UrlExsicata']):
+                                st.warning("Imagem da subpasta 'Fotos exsicatas Mike' - não disponível para visualização")
+                                continue
+                                
                             file_id = drive_link_to_direct(row['UrlExsicata'])
                             
                             if file_id:
@@ -655,6 +663,9 @@ elif selected == "Imagem":
                     (df['scientificName'].astype(str).str.upper().str.contains(taxon_busca, na=False))
                 ]
                 
+                # Filtrar novamente para garantir que não há imagens da subpasta Mike
+                resultado_taxon = resultado_taxon[~resultado_taxon['UrlExsicata'].str.contains('Fotos exsicatas Mike', na=False)]
+                
                 if not resultado_taxon.empty:
                     st.success(f"🌿 {len(resultado_taxon)} imagem(ns) encontrada(s) para o táxon: {taxon_input}")
                     
@@ -669,6 +680,13 @@ elif selected == "Imagem":
                         for j in range(4):
                             if i + j < len(items):
                                 _, row = items[i + j]
+                                
+                                # Verificação final para garantir que não é da subpasta Mike
+                                if 'Fotos exsicatas Mike' in str(row['UrlExsicata']):
+                                    with cols[j]:
+                                        st.warning("Imagem não disponível")
+                                    continue
+                                    
                                 file_id = drive_link_to_direct(row['UrlExsicata'])
                                 
                                 if file_id:
