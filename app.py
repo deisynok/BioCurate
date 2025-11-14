@@ -413,7 +413,7 @@ elif selected == "Busca":
                     unsafe_allow_html=True
                 )
             
-            # Internal Number (FieldNumber)
+            # Internal Number (fieldNumber)
             field_number = first.get("fieldNumber")
             if pd.notna(field_number) and str(field_number).strip():
                 st.markdown(
@@ -450,7 +450,7 @@ elif selected == "Busca":
         
     st.markdown("---")
 
-     # Entry for FieldNumber
+     # Entry for fieldNumber
     num_interno = st.text_input(
         "Digite o número interno (Número de Bloco)",
         value="",
@@ -461,8 +461,8 @@ elif selected == "Busca":
     if st.button("🔍 Buscar por bloco"):
         df = st.session_state.df.copy()
 
-        if "FieldNumber" not in df.columns:
-            st.warning("⚠️ Sua base de dados não possui a coluna 'FieldNumber'.")
+        if "fieldNumber" not in df.columns:
+            st.warning("⚠️ Sua base de dados não possui a coluna 'fieldNumber'.")
         else:
             df["fieldNumber"] = df["fieldNumber"].astype(str).str.strip()
             num_interno = num_interno.strip()
