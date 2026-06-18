@@ -312,12 +312,6 @@ def run():
     # Data Search Page
     # -----------------------------------------------
     elif selected == "Search":
-        import re
-        import cv2
-        import numpy as np
-        import pandas as pd
-        import streamlit as st
-
         st.subheader("📋 Search Data")
         st.write(
             "Retrieve detailed specimen information using the accession number. "
@@ -609,18 +603,6 @@ def run():
     # Image Lookup + Pl@ntNet
     # -----------------------------------------------
     elif selected == "Image":
-        import os
-        import re
-        import io
-        import time
-        import requests
-        import pandas as pd
-        import streamlit as st
-
-        from io import BytesIO
-        from PIL import Image, ImageOps
-        from streamlit_gsheets import GSheetsConnection
-
         st.subheader("📷 Search Image")
         st.write(
             "Search HUAM specimen images linked to the database and use the "
