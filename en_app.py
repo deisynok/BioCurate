@@ -11,6 +11,10 @@
 # Last updated: 2025-07-14
 # -----------------------------------------------
 
+import os
+import re
+import io
+import time
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -18,25 +22,17 @@ import cv2
 from streamlit_gsheets import GSheetsConnection
 import requests
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageOps
 from streamlit_option_menu import option_menu
 import plotly.express as px
 
+
 def run():
-    # -----------------------------------------------
-    # General Configuration
-    # -----------------------------------------------
-
-    st.set_page_config(page_title="BioCurate",  
-        page_icon="favicon.png",
-        layout="centered"
-        )
-
     # Session variables
     if 'df' not in st.session_state:
         st.session_state.df = None
     if 'barcode_col' not in st.session_state:
-        st.session_state.barcode_col = 'CollectionCode'
+        st.session_state.barcode_col = 'collectionCode'
     if 'img_folder' not in st.session_state:
         st.session_state.img_folder = ''
 
@@ -47,7 +43,7 @@ def run():
     # Create horizontal navigation bar
     selected = option_menu(
         None,
-        ["Home", "Dataset", "Report", "Lookup", "Image"],
+        ["Home", "Database", "Report", "Search", "Image"],
         icons=["house", "database", "bar-chart", "search", "image"],
         menu_icon="cast",
         default_index=0,
@@ -66,10 +62,10 @@ def run():
             "text-align": "center",
             "margin": "0px",
             "color": "#FFFFFF",
-            "--hover-color": "#B2DFDB"  # Verde-água suave
+            "--hover-color": "#B2DFDB"  # soft teal
         },
         "nav-link-selected": {
-            "background-color": "#388E3C"  # Verde escuro
+            "background-color": "#388E3C"  # dark green
         },
     },
     )
@@ -84,104 +80,102 @@ def run():
         with col2:
             st.markdown("""
                 **BioCurate** is a tool designed for the curation of biological collections, with an emphasis on herbaria.  
-                It improves data accessibility and accuracy by enabling information retrieval through barcode scanning or manual input.  
-                The tool also integrates image visualization and external queries to databases such as GBIF, Reflora, and SpeciesLink.
+                It improves accessibility and accuracy in data organization, allowing records to be cross-checked by barcode reading or manual entry.  
+                It also integrates image visualization and external searches in databases such as GBIF, Reflora, and SpeciesLink.
                 """)
-        
+    
         st.markdown("""
             ##### BioCurate Features
 
-            1. **📦 Dataset**  
-            Automatically load the official HUAM spreadsheet or upload your own CSV file (Darwin Core standard). This dataset will be used for all queries.
+            1. **📦 Database**  
+            Automatically load the official HUAM spreadsheet or upload your own CSV database in Darwin Core format. It will be used for all searches.
 
             2. **📊 Report**  
-            Generate reports by family, genus, or species, including sample counts, taxon lists, and storage locations.
+            Generate reports by family, genus, or species, including specimen counts, taxon lists, and storage locations.
 
-            3. **📋 Lookup Data**  
-            Access detailed specimen information using the tomb number or barcode: scientific name, collection site, and storage location.
+            3. **📋 Search Data**  
+            Retrieve detailed specimen data by accession number or barcode: scientific name, collection site, and storage location.
 
-            4. **📷 Lookup Image**  
-            View the specimen image and send it to Pl@ntNet for automatic species identification. Works only for HUAM samples linked to the institutional Google Drive.
-            """)
-        
+            4. **📷 Search Image**  
+            View the herbarium specimen and send it to Pl@ntNet for automatic species identification. This feature works only with HUAM specimens linked to the institutional Google Drive.      
+        """)
+       
         st.markdown("""
-            ### About BioCurate  
-            This project is an initiative of the **Herbarium of the Federal University of Amazonas (HUAM)** and is part of the PhD research of **Deisy Saraiva**, affiliated with the **BIONORTE Graduate Program – Biodiversity and Biotechnology Network of the Legal Amazon**.  
-            The research focuses on the use of technology to improve access and curation of scientific collections, especially the HUAM Herbarium.
+            ### About BioCurate
+            This project is an initiative of the **Herbarium of the Federal University of Amazonas (HUAM)** and is part of the PhD research of **Deisy Saraiva**, affiliated with the **BIONORTE Graduate Program – Biodiversity and Biotechnology Network of the Legal Amazon**. The research focuses on the use of technologies to expand access to and curation of scientific collections, especially the HUAM Herbarium.
 
             Contact: deisysaraiva@ufam.edu.br
 
-            - [Visit the HUAM website](http://huam.site)  
-            - [HUAM Collection at UFAM's official website](https://www.icb.ufam.edu.br/colecoes/huam.html)
+            - [Access the HUAM website](http://huam.site)
+            - [The collection on UFAM institutional website](https://www.icb.ufam.edu.br/colecoes/huam.html)
 
             ---
 
             ### About Automatic Identification with Pl@ntNet
 
-            BioCurate integrates automatic species identification through the Pl@ntNet API.  
+            BioCurate integrates automatic image-based species identification through the Pl@ntNet API.  
             The results are generated by artificial intelligence and must be validated by a specialist.  
-            More information at [plantnet.org](https://plantnet.org).
+            More information at plantnet.org.  
 
             ---
 
-            ### About the Darwin Core Standard
+            ### About the Darwin Core standard
 
             **Darwin Core** is an international standard for sharing biodiversity data. It defines recommended terms that ensure consistency and interoperability across databases.
 
-            - [Darwin Core Repository](https://github.com/tdwg/dwc)  
-            - [Darwin Core Terms](https://dwc.tdwg.org/terms)  
-            - [Darwin Core Header Schema](https://splink.cria.org.br/digir/darwin2.xsd)  
-            - [Introductory Video (YouTube)](https://www.youtube.com/embed/YC0DfctXs5Q)
-            """)
+            - [Darwin Core repository](https://github.com/tdwg/dwc)
+            - [Darwin Core standard](https://dwc.tdwg.org/terms)
+            - [Darwin Core header template](https://splink.cria.org.br/digir/darwin2.xsd)
+            - [Explanatory video (YouTube)](https://www.youtube.com/embed/YC0DfctXs5Q)
+        """)
 
-        with st.expander("Required Metadata Description in the Dataset"):
+        with st.expander("Required Metadata Description"):
             st.markdown("""
-                The dataset to be loaded must follow the **Darwin Core** standard, using key fields essential for specimen curation:
+                The database to be uploaded should follow the **Darwin Core** standard, adopting key fields for curation:
 
-                - **CollectionCode:** Unique collection code (tomb number from HUAM).
-                - **CatalogNumber:** Internal catalog number of the specimen.
-                - **Collector:** Name of the main collector responsible for the specimen.
-                - **Addcoll:** Additional collectors involved in the collection.
-                - **CollectorNumberPrefix:** Prefix before the collector number (if any).
-                - **CollectorNumber:** Number assigned by the collector to the specimen.
-                - **CollectorNumberSuffix:** Suffix after the collector number (if any).
-                - **DayCollected / MonthCollected / YearCollected:** Exact collection date of the specimen.
-                - **Family:** Botanical family of the specimen.
-                - **ScientificName:** Full scientific name (genus + species + infraspecific epithet, if applicable).
-                - **Genus:** Botanical genus name.
-                - **Species:** Specific epithet (species name).
-                - **ScientificNameAuthor:** Taxonomic authority who described the taxon.
-                - **StorageLocation:** Physical location of the specimen in the collection (e.g., cabinet, shelf).
+                - **collectionCode:** Unique collection code (HUAM accession number).
+                - **catalogNumber:** Internal catalog number of the specimen.
+                - **recordedBy:** Name of the main collector responsible for the specimen.
+                - **addCollector:** Additional collectors involved in the collection event.
+                - **recordNumber:** Number assigned to the specimen by the collector.
+                - **dayCollected / monthCollected / yearCollected:** Exact collection date of the specimen.
+                - **family:** Botanical family to which the specimen belongs.
+                - **scientificName:** Complete scientific name (genus + species + infraspecific rank, if applicable).
+                - **genus:** Botanical genus name.
+                - **specificEpithet:** Specific epithet (species name).
+                - **scientificNameAuthorship:** Taxonomic authority that described the taxon.
+                - **dynamicProperties:** Physical location of the specimen in the collection (e.g., cabinet, shelf).
 
-                These fields ensure compatibility with biodiversity data-sharing standards such as **GBIF**, **SpeciesLink**, and **Reflora**, and enable use in **digital systems** like BioCurate.
-                """)
+                These fields ensure that the database is compatible with data-exchange standards such as **GBIF**, **SpeciesLink**, and **Reflora**, and enable its use in **digital systems** such as BioCurate.
+            """)
+    
         #Supported by
         st.markdown("---")
-        st.markdown(" ##### Supported by")
+        st.markdown(" ##### Support")
         st.image("SupportedBy.png", use_container_width=True)
 
     # -----------------------------------------------
-    # Data Base Page
+    # Database Page
     # -----------------------------------------------
-    elif selected == "Dataset":
-        st.subheader("📦 Dataset")
-        st.subheader("Automatic connection to HUAM Database")
+    elif selected == "Database":
+        st.subheader("📦 Database")
+        st.subheader("Automatic connection to the HUAM database")
 
-        # Automatic connection to the HUAM sheet
+        # Automatic connection to the HUAM huam
         conn = st.connection("gsheets", type=GSheetsConnection)
         df_base = conn.read(worksheet="Metadata", ttl="10m")
-
+        
         st.session_state.df = df_base
-        st.success("✔️ HUAM Herbarium Database loaded!")
+        st.success("✔️ HUAM Herbarium database loaded!")
         st.write(df_base.head())
 
         # Upload CSV to overwrite existing data
-        st.subheader("Or upload your own DarwinCore-formatted dataset")
-        file = st.file_uploader("Select a CSV file", type=["csv"])
+        st.subheader("Or upload your own database in Darwin Core format")
+        file = st.file_uploader("Select the CSV file", type=["csv"])
         if file:
             df_base = pd.read_csv(file)
             st.session_state.df = df_base
-            st.success("CSV file loaded! Dataset updated.")
+            st.success("CSV file uploaded. Database updated.")
             st.write(df_base.head())
 
     # -----------------------------------------------
@@ -190,60 +184,61 @@ def run():
     elif selected == "Report":
         st.subheader("📊 Data Report")
         st.write(
-            "Generate detailed reports from the database loaded in the BASE tab."  
-            "Simply enter the name of a family, genus, or species and click Search to view the number of registered specimens, their location in the collection, the list of related taxa, and all available records."
+            "Generate reports from the database loaded in the **DATABASE** tab. "
+            "Enter the name of a **family**, **genus**, or **species** and click **Search** to view the number of specimens, "
+            "the location in the collection, the list of related taxa, and the complete available records."
         )
 
         # Load the database
         if st.session_state.df is None:
-            st.warning("⚠️ Please load the database in the **BASE** tab first!")	
+            st.warning("⚠️ The database must be loaded in the **DATABASE** tab!")	
         else:
             df = st.session_state.df.copy()
 
             # Show all botanical families in the dataset
-            if st.button("Display all plant families"):
-                contagem_familias = df["Family"].value_counts().sort_values(ascending=True)
-                st.session_state["contagem_familias"] = contagem_familias  # salva na sessão
+            if st.button("List All Botanical Families"):
+                contagem_familias = df["family"].value_counts().sort_values(ascending=True)
+                st.session_state["contagem_familias"] = contagem_familias  # saves to session
 
                 st.success(f"**Total families found:** {len(contagem_familias)}")
                 st.write(", ".join(contagem_familias.index.tolist()))
 
             # Show chart button (only if data is available)
             if "contagem_familias" in st.session_state:
-                if st.button("📊 Generate Interactive Chart by Family"):
+                if st.button("📊 Display Interactive Chart by Family"):
                     contagem_familias = st.session_state["contagem_familias"]
                     df_plot = contagem_familias.reset_index()
-                    df_plot.columns = ["Family", "Samples"]
+                    df_plot.columns = ["Family", "Specimens"]
 
                     fig = px.bar(
                         df_plot,
-                        x="Samples",
+                        x="Specimens",
                         y="Family",
                         orientation="h",
                         title="Specimens by Family",
-                        labels={"Samples": "Sample Count", "Family": "Family"},
+                        labels={"Specimens": "Number of Specimens", "Family": "Family"},
                         color_discrete_sequence=["#388E3C"],
-                        height=max(400, len(df_plot) * 20)
+                        height=max(400, len(df_plot) * 20)  # ajusta altura
                     )
 
                     st.plotly_chart(fig, use_container_width=True)        
 
             # Family Report
-            st.subheader("Lookup by Family")
-            familia = st.text_input("Type the botanical family name:")
-            if st.button("🔍 Lookup Family"):
+            st.subheader("Search by Family")
+            familia = st.text_input("Enter the family name:")
+            if st.button("🔍 Search Family"):
                 if familia:
-                    df_fam = df[df["Family"].str.upper() == familia.upper()]
+                    df_fam = df[df["family"].str.upper() == familia.upper()]
                     num_material = len(df_fam)
-                    generos = df_fam["Genus"].dropna().unique()
-                    especies = df_fam["ScientificName"].dropna().unique()
-                    locs = df_fam["StorageLocation"].dropna().unique()
+                    generos = df_fam["genus"].dropna().unique()
+                    especies = df_fam["scientificName"].dropna().unique()
+                    locs = df_fam["dynamicProperties"].dropna().unique()
 
                     if len(locs) > 0:
                         locs_str = ", ".join(sorted(map(str, locs)))
-                        st.info(f"**Storage location:** {locs_str}")
+                        st.info(f"**Location in the collection:** {locs_str}")
 
-                    st.info(f"**Total samples:** {num_material}")
+                    st.info(f"**Total specimens:** {num_material}")
                     st.info(f"**Total genera:** {len(generos)}")
                     st.write("**Genera found:**")
                     st.write(", ".join(sorted(map(str, generos))))
@@ -252,46 +247,48 @@ def run():
                     st.write("**Species found:**")
                     st.write(", ".join(sorted(map(str, especies))))
                 else:
-                    st.warning("Please enter the family name before searching!")
+                    st.warning("Enter the family name before searching.")
 
             # Genus Report
-            st.subheader("Lookup by Genus")
+            st.subheader("Search by Genus")
             genero = st.text_input("Enter the genus name:")
-            if st.button("🔍 Lookup by Genus"):
+        
+            if st.button("🔍 Search Genus"):
                 if genero:
-                    df_gen = df[df["Genus"].str.upper() == genero.upper()]
+                    df_gen = df[df["genus"].str.upper() == genero.upper()]
                     total_amostras = len(df_gen)
-                    so_genero = df_gen[df_gen["ScientificName"].isna() | (df_gen["ScientificName"].str.strip() == "")]
-                    especies_por_genero = df_gen["ScientificName"].dropna().unique()
-                    locs = df_gen["StorageLocation"].dropna().unique()
-                    familias = df_gen["Family"].dropna().unique()
+                    so_genero = df_gen[df_gen["scientificName"].isna() | (df_gen["scientificName"].str.strip() == "")]
+                    especies_por_genero = df_gen["scientificName"].dropna().unique()
+                    locs = df_gen["scientificName"].dropna().unique()
+                    familias = df_gen["family"].dropna().unique()
 
                     if len(locs) > 0:
                         locs_str = ", ".join(sorted(map(str, locs)))
-                        st.info(f"**Storage location:** {locs_str}")
-                    
+                        st.info(f"**Location in the collection:** {locs_str}")
+
                     st.info(f"**Family:** {', '.join(sorted(map(str, familias)))}")
-                    st.info(f"**Specimens in genus:** {total_amostras}")
-                    st.info(f"**Species within genus:** {len(especies_por_genero)}")
+                    st.info(f"**Genus specimens:** {total_amostras}")
+                    st.info(f"**Species within the genus:** {len(especies_por_genero)}")
                     st.write("**Species found:**")
                     st.write(", ".join(sorted(map(str, especies_por_genero))))
                 else:
-                    st.warning("Please enter the genus name before searching!")
+                    st.warning("Enter the genus name before searching.")
 
             # Species Report
-            st.subheader("Lookup by Species")
+            st.subheader("Search by Species")
             especie = st.text_input("Enter the scientific name of the species:")
-            if st.button("🔍 Lookup Species"):
+       
+            if st.button("🔍 Search Species"):
                 if especie:
-                    df_esp = df[df["ScientificName"].str.upper() == especie.upper()]
+                    df_esp = df[df["scientificName"].str.upper() == especie.upper()]
                     total_especie = len(df_esp)
-                    locs = df_esp["StorageLocation"].dropna().unique()
-                    familias = df_esp["Family"].dropna().unique()
+                    locs = df_esp["dynamicProperties"].dropna().unique()
+                    familias = df_esp["family"].dropna().unique()
 
                     if len(locs) > 0:
                         locs_str = ", ".join(sorted(map(str, locs)))
-                        st.info(f"**Storage location:** {locs_str}")
-                    
+                        st.info(f"**Location in the collection:** {locs_str}")
+
                     st.info(f"**Family:** {', '.join(sorted(map(str, familias)))}")
                     st.info(f"**Total specimens of the species:** {total_especie}")
 
@@ -299,119 +296,192 @@ def run():
                         st.write("**Details of the specimens found:**")
                         st.dataframe(df_esp, use_container_width=True)
                     else:
-                        st.warning("No specimens found for this species.")
+                        st.warning("No specimen found for this species.")
                 else:
-                    st.warning("Please enter the species name before searching!")
+                    st.warning("Enter the species name before searching.")
+
     # -----------------------------------------------
     # Data Search Page
     # -----------------------------------------------
-    elif selected == "Lookup":
-        st.subheader("📋 Lookup Data")
-        st.write("Consult detailed specimen information using the accession number. Enter the code to view taxonomic data, storage location, collectors, and other relevant information.")
+    elif selected == "Search":
+        import re
+        import cv2
+        import numpy as np
+        import pandas as pd
+        import streamlit as st
 
-        # Load the database
-        if st.session_state.df is None:
-            st.warning("⚠️ Please load the database in the **BASE** tab first!")	
-        else:
-            df = st.session_state.df.copy()
-
-        # Manual input of the code
-        code = ""
-        codigo = st.text_input(
-            "Enter the accession number",
-            value=code,
-            placeholder="e.g., HUAM001245 or just 1245"
+        st.subheader("📋 Search Data")
+        st.write(
+            "Retrieve detailed specimen information using the accession number. "
+            "Enter the code manually or scan the QR Code to view taxonomic data, "
+            "storage location, collectors, and other relevant information."
         )
 
-        # Lookup button
-        if st.button("🔍 Lookup Data"):
-            df = st.session_state.df.copy()
-            col = 'CollectionCode'
-            st.session_state.barcode_col = col
-            code = codigo.strip().upper()
-            df[col] = df[col].astype(str).str.upper()
+        # -------------------------------------------------
+        # Helper functions
+        # -------------------------------------------------
+        def normalizar_codigo(valor):
+            """
+            Normalizes the code entered manually or read from a QR Code.
+            Accepts codes such as HUAM001245, 1245, or URLs containing the code.
+            """
+            if valor is None:
+                return ""
+
+            texto = str(valor).strip().upper()
+
+            # If the QR Code contains a URL, tries to extract HUAM + numbers
+            match_huam = re.search(r"HUAM\s*0*\d+", texto)
+            if match_huam:
+                return match_huam.group(0).replace(" ", "")
+
+            # If it contains only numbers
+            match_num = re.search(r"\d+", texto)
+            if match_num:
+                return match_num.group(0)
+
+            return texto
+
+
+        def buscar_por_tombo(df, codigo_busca):
+            """
+            Searches the accession number in the database.
+            Prioritizes collectionCode, but also accepts barcode if available.
+            """
+            codigo_busca = normalizar_codigo(codigo_busca)
+
+            colunas_possiveis = ["collectionCode", "barcode", "catalogNumber"]
+
+            col = None
+            for c in colunas_possiveis:
+                if c in df.columns:
+                    col = c
+                    break
+
+            if col is None:
+                st.error(
+                    "The database does not contain a recognized accession-number column. "
+                    "Expected: collectionCode, barcode, or catalogNumber."
+                )
+                return pd.DataFrame(), None
+
+            df = df.copy()
+            df[col] = df[col].fillna("").astype(str).str.upper().str.strip()
+
             result = df[
-                df[col].str.upper().eq(code) |
-                df[col].str.endswith(code.zfill(6))
+                df[col].eq(codigo_busca) |
+                df[col].str.endswith(codigo_busca) |
+                df[col].str.endswith(codigo_busca.zfill(6))
             ]
 
-            # Save the specimen code to the session
-            st.session_state["last_codigo"] = code
+            return result, col
 
-            if not result.empty:
-                first = result.iloc[0]
 
-                # Scientific name and author (with fallback)
-                sci = first.get("ScientificName", "")
-                sci = sci if isinstance(sci, str) and sci.strip() else "Undetermined"
+        def ler_qrcode(uploaded_image):
+            """
+            Decodes the QR Code from the image captured by st.camera_input.
+            """
+            file_bytes = np.asarray(bytearray(uploaded_image.getvalue()), dtype=np.uint8)
+            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-                auth = first.get("ScientificNameAuthor", "")
-                if not isinstance(auth, str) or not auth.strip():
-                    auth = ""
+            if img is None:
+                return None
 
-                if auth:
-                    st.markdown(
-                        f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i> {auth}</div>",
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.markdown(
-                        f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i></div>",
-                        unsafe_allow_html=True
-                    )
+            detector = cv2.QRCodeDetector()
+            data, bbox, _ = detector.detectAndDecode(img)
 
-                # Family
-                fam = first.get("Family")
-                if pd.notna(fam):
-                    st.markdown(
-                        f"<div style='font-size: 18px;'>Family: {fam}</div>",
-                        unsafe_allow_html=True
-                    )
+            if data:
+                return data.strip()
 
-                # Storage Location
-                loc = first.get("StorageLocation")
-                if pd.notna(loc):
-                    st.markdown(
-                        f"<b>Storage location:</b> {loc}",
-                        unsafe_allow_html=True
-                    )
+            return None
 
-                # Collector and collection number
-                coll = first.get("Collector")
-                addcoll = first.get("Addcoll")
-                number = first.get("CollectorNumber")
-                    
-                collected = f"{number or ''}".strip()
-                if coll or collected:
-                    st.markdown(
-                        f"<b>Collector:</b> {coll or ''} {addcoll or ''} — Nº {collected}",
-                        unsafe_allow_html=True
-                    )
 
-                # Collection date
-                date_parts = []
-                for f in ["DayCollected", "MonthCollected", "YearCollected"]:
-                    val = first.get(f)
-                    if pd.notna(val):
-                        date_parts.append(str(int(val)))
-                if date_parts:
-                    st.markdown(
-                        f"<b>Collection date:</b> {'/'.join(date_parts)}",
-                        unsafe_allow_html=True
-                    )
-                
-                # View full dataset entry
-                st.dataframe(result, use_container_width=True)       
-                
-                # External search by scientific name or family
-                nome_busca = ""
-                if isinstance(sci, str) and sci.strip():
-                    nome_busca = sci.strip().replace(" ", "+")
-                elif isinstance(fam, str) and fam.strip():
-                    nome_busca = fam.strip().replace(" ", "+")
+        def mostrar_dados_amostra(result):
+            """
+            Displays the main data of the specimen found.
+            """
+            if result.empty:
+                st.error("Code not found.")
+                return
 
-                st.markdown("""
-                ### 📤 Look up the name in scientific databases:
+            first = result.iloc[0]
+
+            sci = first.get("scientificName", "")
+            sci = sci if isinstance(sci, str) and sci.strip() else "Undetermined"
+
+            auth = first.get("scientificNameAuthorship", "")
+            if not isinstance(auth, str) or not auth.strip():
+                auth = ""
+
+            if auth:
+                st.markdown(
+                    f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i> {auth}</div>",
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i></div>",
+                    unsafe_allow_html=True
+                )
+
+            fam = first.get("family")
+            if pd.notna(fam):
+                st.markdown(
+                    f"<div style='font-size: 18px;'>Family: {fam}</div>",
+                    unsafe_allow_html=True
+                )
+
+            loc = first.get("dynamicProperties")
+            if pd.notna(loc):
+                st.markdown(
+                    f"<b>Location in the collection:</b> {loc}",
+                    unsafe_allow_html=True
+                )
+
+            coll = first.get("recordedBy")
+            addcoll = first.get("addCollector")
+            number = first.get("recordNumber")
+
+            collected = f"{number or ''}".strip()
+            if coll or collected or addcoll:
+                st.markdown(
+                    f"<b>Collector(s):</b> {coll or ''} <b>no.</b> {collected} <b>&</b> {addcoll or ''}",
+                    unsafe_allow_html=True
+                )
+
+            date_parts = []
+            for f in ["dayCollected", "monthCollected", "yearCollected"]:
+                val = first.get(f)
+                if pd.notna(val):
+                    try:
+                        date_parts.append(str(int(float(val))))
+                    except Exception:
+                        date_parts.append(str(val))
+
+            if date_parts:
+                st.markdown(
+                    f"<b>Collection date:</b> {'/'.join(date_parts)}",
+                    unsafe_allow_html=True
+                )
+
+            field_number = first.get("fieldNumber")
+            if pd.notna(field_number) and str(field_number).strip():
+                st.markdown(
+                    f"<b>Internal number (block):</b> {field_number}",
+                    unsafe_allow_html=True
+                )
+
+            st.dataframe(result, use_container_width=True)
+
+            nome_busca = ""
+            if isinstance(sci, str) and sci.strip() and sci != "Undetermined":
+                nome_busca = sci.strip().replace(" ", "+")
+            elif isinstance(fam, str) and fam.strip():
+                nome_busca = fam.strip().replace(" ", "+")
+
+            st.markdown(
+                """
+                ### 📤 Search the name in scientific databases:
                 <div style='display: flex; flex-wrap: wrap; gap: 10px;'>
                     <a href='https://www.gbif.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>GBIF</a>
                     <a href='https://floradobrasil.jbrj.gov.br/reflora/listaBrasil/ConsultaPublicaUC/BemVindoConsultaPublicaConsultar.do?nomeCompleto=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>Reflora Lista</a>
@@ -422,122 +492,606 @@ def run():
                     <a href='https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>JSTOR Plants</a>
                     <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
                 </div>
-                """, unsafe_allow_html=True)
-                                        
-            else:
-                st.error("No record found for this code!")        
+                """,
+                unsafe_allow_html=True
+            )
+
+        # -------------------------------------------------
+        # Verificar base
+        # -------------------------------------------------
+        if "df" not in st.session_state or st.session_state.df is None:
+            st.warning("⚠️ The database must be loaded in the **DATABASE** tab!")
+
+        else:
+            df = st.session_state.df.copy()
+
+            # -------------------------------------------------
+            # Leitura por QR Code
+            # -------------------------------------------------
+            st.subheader("📷 Scan QR Code")
+
+            st.info(
+                "Point the camera at the specimen QR Code. "
+                "The QR Code must contain the accession number, for example HUAM001245."
+            )
+
+            qr_image = st.camera_input("Capture QR Code")
+
+            if qr_image is not None:
+                qr_text = ler_qrcode(qr_image)
+
+                if qr_text:
+                    codigo_lido = normalizar_codigo(qr_text)
+
+                    st.success(f"QR Code read: {qr_text}")
+                    st.info(f"Code interpreted for search: {codigo_lido}")
+
+                    result, col_usada = buscar_por_tombo(df, codigo_lido)
+
+                    if col_usada:
+                        st.caption(f"Search performed in column: {col_usada}")
+
+                    st.session_state["last_codigo"] = codigo_lido
+                    mostrar_dados_amostra(result)
+
+                else:
+                    st.warning(
+                        "Could not read the QR Code. "
+                        "Try moving the camera closer, improving the lighting, or centering the code better."
+                    )
+
+            st.markdown("---")
+
+            # -------------------------------------------------
+            # Busca manual por tombo
+            # -------------------------------------------------
+            st.subheader("🔎 Manual search by accession number")
+
+            codigo = st.text_input(
+                "Enter the accession number",
+                value="",
+                placeholder="e.g., HUAM001245 or only 1245"
+            )
+
+            if st.button("🔍 Search by accession number"):
+                if not codigo:
+                    st.warning("Enter the accession number before searching.")
+
+                else:
+                    code = normalizar_codigo(codigo)
+                    result, col_usada = buscar_por_tombo(df, code)
+
+                    if col_usada:
+                        st.caption(f"Search performed in column: {col_usada}")
+
+                    st.session_state["last_codigo"] = code
+                    mostrar_dados_amostra(result)
+
+            st.markdown("---")
+
+            # -------------------------------------------------
+            # Search by internal number / block
+            # -------------------------------------------------
+            st.subheader("🔍 Search by internal number")
+
+            num_interno = st.text_input(
+                "Enter the internal number (block number)",
+                value="",
+                placeholder="Ex.: 321"
+            )
+
+            if st.button("🔍 Search by block"):
+                if "fieldNumber" not in df.columns:
+                    st.warning("⚠️ Your database does not contain the column 'fieldNumber'.")
+
+                else:
+                    df["fieldNumber"] = df["fieldNumber"].astype(str).str.strip()
+                    num_interno = num_interno.strip()
+                    resultado_bloco = df[df["fieldNumber"] == num_interno]
+
+                    if not resultado_bloco.empty:
+                        st.success(
+                            f"{len(resultado_bloco)} specimen(s) found with internal number '{num_interno}'."
+                        )
+                        st.dataframe(resultado_bloco, use_container_width=True)
+                    else:
+                        st.warning("No specimen found with this internal number.")              
 
     # -----------------------------------------------
     # Image Lookup + Pl@ntNet
     # -----------------------------------------------
     elif selected == "Image":
-        st.subheader("📷 Lookup Image")
+        import os
+        import re
+        import io
+        import time
+        import requests
+        import pandas as pd
+        import streamlit as st
+
+        from io import BytesIO
+        from PIL import Image, ImageOps
+        from streamlit_gsheets import GSheetsConnection
+
+        st.subheader("📷 Search Image")
         st.write(
-            "Search for images of HUAM specimens linked to the database and use the **Pl@ntNet** service to automatically identify the species. "
-            "Just enter the accession number to view the herbarium specimen image and receive botanical identification suggestions."
+            "Search HUAM specimen images linked to the database and use the "
+            "**Pl@ntNet** service to generate automatic botanical identification suggestions. "
+            "Enter the accession number to view the specimen image and receive the list of probable species."
         )
-        
-        # Load the database
+
+        # -------------------------------------------------
+        # General settings
+        # -------------------------------------------------
+        DRIVE_TIMEOUT = (10, 30)
+        PLANTNET_TIMEOUT = (10, 60)
+        MAX_TENTATIVAS = 3
+        PLANTNET_PROJECT = "all"
+        PLANTNET_URL = f"https://my-api.plantnet.org/v2/identify/{PLANTNET_PROJECT}"
+
+        # -------------------------------------------------
+        # Load database
+        # -------------------------------------------------
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(worksheet="Image", ttl="10m")
-        
-        def drive_link_to_direct(link):
+
+        df = df[~df["Subpasta"].astype(str).str.contains("Fotos exsicatas Mike", na=False)]
+
+        # -------------------------------------------------
+        # Helper functions
+        # -------------------------------------------------
+        def redigir_api_key(texto):
+            """
+            Removes the API key from any error message before displaying it in the interface.
+            """
+            if texto is None:
+                return ""
+
+            texto = str(texto)
+            texto = re.sub(r"(api-key=)[^&\s]+", r"\1[REDACTED]", texto)
+            texto = re.sub(r'("api-key"\s*:\s*")[^"]+(")', r'\1[REDACTED]\2', texto)
+            return texto
+
+
+        def drive_link_to_file_id(link):
+            """
+            Extracts the file_id from a Google Drive link.
+            Accepts links in the format /file/d/ID/view, /d/ID, or URLs with ?id=.
+            """
+            if not isinstance(link, str):
+                return None
+
             try:
-                parts = link.split("/d/")
-                if len(parts) > 1:
-                    file_id = parts[1].split("/")[0]
-                    return file_id
+                if "/d/" in link:
+                    return link.split("/d/")[1].split("/")[0]
+
+                if "id=" in link:
+                    return link.split("id=")[1].split("&")[0]
+
             except Exception:
-                pass
+                return None
+
             return None
 
-        # Manual input of the code
-        code = ""
-        codigo = st.text_input(
-            "Enter the accession number",
-            value=code,
-            placeholder="e.g., HUAM001245 or just 1245"
-        )
-        
-        # Search and Identify (Pl@ntNet)
-        if st.button("🔍 Lookup Images and Identify"):
-            col_codigo = 'barcode'
-            df[col_codigo] = df[col_codigo].astype(str).str.upper()
-            codigo = codigo.strip().upper()
 
-            resultado = df[
-                df[col_codigo].eq(codigo) |
-                df[col_codigo].str.endswith(codigo) |
-                df[col_codigo].str.endswith(codigo.zfill(6))
+        def download_drive_image(file_id):
+            """
+            Downloads the image from Google Drive with an explicit timeout.
+            """
+            url = f"https://drive.google.com/uc?export=view&id={file_id}"
+
+            try:
+                response = requests.get(url, timeout=DRIVE_TIMEOUT)
+
+            except requests.exceptions.Timeout:
+                raise RuntimeError("Timeout while downloading the image from Google Drive.")
+
+            except requests.exceptions.RequestException:
+                raise RuntimeError("Network error while accessing Google Drive.")
+
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"Could not load the image from Drive. HTTP status: {response.status_code}"
+                )
+
+            content_type = response.headers.get("Content-Type", "")
+
+            if "image" not in content_type.lower():
+                raise RuntimeError(
+                    "The Google Drive link did not return a valid image. "
+                    "Check whether the file is publicly shared or accessible by the app."
+                )
+
+            return response.content
+
+
+        def preparar_imagem_para_plantnet(image_bytes, max_size_mb=45):
+            """
+            Opens the image, fixes EXIF orientation, converts it to RGB, and generates a JPEG.
+            Keeps a safety margin below the 50 MB limit accepted by Pl@ntNet.
+            """
+            try:
+                img = Image.open(BytesIO(image_bytes))
+                img = ImageOps.exif_transpose(img)
+                img = img.convert("RGB")
+
+            except Exception:
+                raise RuntimeError("Error opening or converting the image.")
+
+            buffer = BytesIO()
+            img.save(buffer, format="JPEG", quality=90, optimize=True)
+            prepared_bytes = buffer.getvalue()
+
+            max_size_bytes = max_size_mb * 1024 * 1024
+
+            if len(prepared_bytes) > max_size_bytes:
+                img.thumbnail((2500, 2500))
+                buffer = BytesIO()
+                img.save(buffer, format="JPEG", quality=85, optimize=True)
+                prepared_bytes = buffer.getvalue()
+
+            if len(prepared_bytes) > 50 * 1024 * 1024:
+                raise RuntimeError("The image exceeds 50 MB, the maximum limit accepted by Pl@ntNet.")
+
+            return img, prepared_bytes
+
+
+        def identificar_com_plantnet(image_bytes, organ="auto"):       
+            try:
+                API_KEY = st.secrets["plantnet"]["api_key"]
+            except KeyError:
+                raise RuntimeError("Pl@ntNet API key not found in st.secrets.")
+
+            params = {
+                "api-key": API_KEY,
+                "nb-results": 5,
+                "lang": "en"
+            }
+
+            data = None
+            if organ and organ != "auto":
+                data = {
+                    "organs": [organ]
+                }
+
+            ultimo_erro_tipo = None
+
+            for tentativa in range(1, MAX_TENTATIVAS + 1):
+                try:
+                    # Recriar BytesIO e files a cada tentativa.
+                    # This prevents the file from being resent empty after a failure.
+                    files = [
+                        ("images", ("image.jpg", BytesIO(image_bytes), "image/jpeg"))
+                    ]
+
+                    response = requests.post(
+                        PLANTNET_URL,
+                        params=params,
+                        files=files,
+                        data=data,
+                        timeout=PLANTNET_TIMEOUT
+                    )
+
+                    return response
+
+                except requests.exceptions.ConnectTimeout:
+                    ultimo_erro_tipo = "ConnectTimeout"
+                    st.warning(f"Attempt {tentativa}: connection timeout with Pl@ntNet.")
+
+                except requests.exceptions.ReadTimeout:
+                    ultimo_erro_tipo = "ReadTimeout"
+                    st.warning(f"Attempt {tentativa}: Pl@ntNet connected but took too long to respond.")
+
+                except requests.exceptions.ConnectionError:
+                    ultimo_erro_tipo = "ConnectionError"
+                    st.warning(f"Attempt {tentativa}: connection error with Pl@ntNet.")
+
+                except requests.exceptions.RequestException:
+                    ultimo_erro_tipo = "RequestException"
+                    st.warning(f"Attempt {tentativa}: request failure to Pl@ntNet.")
+
+                time.sleep(3 * tentativa)
+
+            raise RuntimeError(
+                f"Could not connect to Pl@ntNet after {MAX_TENTATIVAS} attempts. "
+                f"Last error type: {ultimo_erro_tipo}."
+            )
+
+
+        def mostrar_resultados_plantnet(response):
+            """
+            Displays the results returned by the Pl@ntNet API.
+            """
+            if response.status_code != 200:
+                try:
+                    error_detail = response.json()
+                except Exception:
+                    error_detail = response.text
+
+                error_detail = redigir_api_key(error_detail)
+
+                st.error(f"Pl@ntNet API error: {response.status_code}")
+                with st.expander("Technical details"):
+                    st.write(error_detail)
+
+                return
+
+            resultado_json = response.json()
+            results = resultado_json.get("results", [])
+
+            best_match = resultado_json.get("bestMatch")
+            predicted_organs = resultado_json.get("predictedOrgans", [])
+            version = resultado_json.get("version")
+            remaining = resultado_json.get("remainingIdentificationRequests")
+
+            if best_match:
+                st.write(f"**Best match:** *{best_match}*")
+
+            if predicted_organs:
+                organ_pred = predicted_organs[0].get("organ")
+                organ_score = predicted_organs[0].get("score")
+
+                if organ_pred is not None and organ_score is not None:
+                    st.write(f"**Detected organ:** {organ_pred} ({organ_score:.2%})")
+                elif organ_pred is not None:
+                    st.write(f"**Detected organ:** {organ_pred}")
+
+            if version:
+                st.caption(f"Pl@ntNet engine version: {version}")
+
+            if remaining is not None:
+                st.caption(f"Remaining requests today: {remaining}")
+
+            if not results:
+                st.info("No match found.")
+                return
+
+            st.subheader("Identification results from the Pl@ntNet API")
+
+            for res in results:
+                species_data = res.get("species", {})
+                family_data = species_data.get("family", {})
+
+                species_name = species_data.get("scientificName", "Name unavailable")
+                species_name_without_author = species_data.get(
+                    "scientificNameWithoutAuthor",
+                    "Name unavailable"
+                )
+                family_name = family_data.get("scientificNameWithoutAuthor", "Family unavailable")
+                score = res.get("score", 0)
+
+                nome_busca = species_name_without_author.strip().replace(" ", "+")
+
+                st.write(
+                    f"- **{species_name}** — {family_name} — Confidence: {score:.2%} | "
+                    f"[Check taxon in GBIF](https://www.gbif.org/search?q={nome_busca})"
+                )
+
+
+        def mostrar_logo_plantnet():
+            """
+            Displays the Pl@ntNet attribution logo at the bottom of the page.
+            Place the powered-by-plantnet.png file in the same folder as app.py
+            or inside an assets/ folder.
+            """
+            st.divider()
+
+            caminhos_possiveis = [
+                "powered-by-plantnet.png",
+                "assets/powered-by-plantnet.png",
+                "images/powered-by-plantnet.png"
             ]
 
-            if resultado.empty:
-                st.session_state.result_image = None
-                st.warning(f"No specimen image found for accession number: {codigo}")
-                
-            else: 
-                st.session_state.result_image = resultado
-                st.success(f"{len(resultado)} result(s) found:")
-                
-                # Show the image result, if available
-                if 'result_image' in st.session_state and st.session_state.result_image is not None:
+            logo_path = None
+
+            for caminho in caminhos_possiveis:
+                if os.path.exists(caminho):
+                    logo_path = caminho
+                    break
+
+            if logo_path:
+                col_logo, _ = st.columns([1, 4])
+                with col_logo:
+                    st.image(logo_path, width=180)
+            else:
+                st.caption("Powered by Pl@ntNet")
+
+
+        # -------------------------------------------------
+        # Busca por tombo
+        # -------------------------------------------------
+        st.subheader("🔍 Search by Accession Number")
+
+        codigo = st.text_input(
+            "Enter the accession number",
+            value="",
+            placeholder="e.g., HUAM001245 or only 1245",
+            key="tombo_input"
+        )
+
+        organ_option = st.selectbox(
+            "Plant organ to send to Pl@ntNet",
+            options=["auto", "leaf", "flower", "fruit", "bark"],
+            index=0,
+            help=(
+                "Use 'auto' for a whole herbarium specimen. Use 'leaf', 'flower', 'fruit', or 'bark' "
+                "when the image is clearly cropped to that organ."
+            )
+        )
+
+        if st.button("🔍 Search by Accession Number", key="buscar_tombo", use_container_width=True):
+            if not codigo:
+                st.warning("Enter an accession number to search.")
+
+            else:
+                col_codigo = "barcode"
+                df[col_codigo] = df[col_codigo].astype(str).str.upper()
+                codigo_busca = codigo.strip().upper()
+
+                resultado = df[
+                    df[col_codigo].eq(codigo_busca) |
+                    df[col_codigo].str.endswith(codigo_busca) |
+                    df[col_codigo].str.endswith(codigo_busca.zfill(6))
+                ]
+
+                if resultado.empty:
+                    st.session_state.result_image = None
+                    st.warning(f"No specimen found for accession number: {codigo_busca}")
+
+                else:
+                    st.session_state.result_image = resultado
+                    st.success(f"{len(resultado)} result(s) found:")
+
                     for _, row in st.session_state.result_image.iterrows():
-                        file_id = drive_link_to_direct(row['UrlExsicata'])
-                        
-                        if file_id:
-                            url = f"https://drive.google.com/uc?export=view&id={file_id}"
-                            response = requests.get(url)
+                        file_id = drive_link_to_file_id(row.get("UrlExsicata"))
 
-                            if response.status_code == 200:
-                                content_type = response.headers.get('Content-Type', '')
-                                
-                                if 'image' in content_type:
-                                    try:
-                                        from PIL import Image
-                                        import io
-
-                                        img = Image.open(io.BytesIO(response.content))
-                                        #img = img.rotate(-90, expand=True)
-                                        st.image(img, caption=row['ArchiveName'])
-
-                                        # Send to Pl@ntNet
-                                        API_KEY = st.secrets["plantnet"]["api_key"]
-                                        PLANTNET_URL = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
-
-                                        files = {
-                                            "images": ('image.jpg', BytesIO(response.content), 'image/jpeg'),
-                                            "organs": (None, 'leaf')
-                                        }
-
-                                        st.info("Submitting to Pl@ntNet...")
-                                        r = requests.post(PLANTNET_URL, files=files)
-
-                                        if r.status_code == 200:
-                                            results = r.json().get("results", [])
-                                            if not results:
-                                                st.info("No matches found!")
-                                            else:
-                                                st.subheader("Pl@ntNet identification results")
-                                                for res in results:
-                                                    species = res['species']['scientificNameWithoutAuthor']
-                                                    score = res['score']
-                                                    nome_busca = species.strip().replace(" ", "+")
-                                                    st.write(
-                                                        f"- **{species}** — Confidence: {score:.2%} | "
-                                                        f"[Ver resultados desse taxon no GBIF](https://www.gbif.org/search?q={nome_busca})"
-                                                    )
-                                                
-                                        else:
-                                            st.error(f"Pl@ntNet API error: {r.status_code}")
-
-                                    except Exception as e:
-                                        st.error(f"Error opening/processing the image: {e}")
-
-                                else:
-                                    st.warning("The link did not return a valid image. Please check the sharing settings.")
-                            else:
-                                st.warning("Failed to load image from Drive.")
-                        else:
+                        if not file_id:
                             st.warning("Invalid Drive link.")
+                            continue
 
-        
+                        try:
+                            image_raw_bytes = download_drive_image(file_id)
+                            img, image_prepared_bytes = preparar_imagem_para_plantnet(image_raw_bytes)
+
+                        except Exception as e:
+                            st.error(f"Error loading/preparing the image: {redigir_api_key(e)}")
+                            continue
+
+                        col1, col2 = st.columns([2, 1])
+
+                        with col1:
+                            st.subheader("Specimen Image")
+                            st.image(
+                                img,
+                                caption=row.get("ArchiveName", "Specimen image"),
+                                use_container_width=True
+                            )
+
+                        with col2:
+                            st.subheader("Specimen Information")
+                            st.write(f"**Accession number:** {row.get('barcode', 'Not informed')}")
+                            st.write(f"**File:** {row.get('ArchiveName', 'Not informed')}")
+
+                            if "family" in row.index and pd.notna(row.get("family")):
+                                st.write(f"**Family:** {row.get('family')}")
+
+                            if "scientificName" in row.index and pd.notna(row.get("scientificName")):
+                                st.write(f"**Name:** *{row.get('scientificName')}*")
+
+                            st.write(f"**URL:** [Open original image]({row.get('UrlExsicata')})")
+
+                        st.info("Sending to Pl@ntNet...")
+
+                        try:
+                            plantnet_response = identificar_com_plantnet(
+                                image_prepared_bytes,
+                                organ=organ_option
+                            )
+
+                            mostrar_resultados_plantnet(plantnet_response)
+
+                        except Exception as e:
+                            st.error(f"Error connecting to/processing the Pl@ntNet response: {redigir_api_key(e)}")
+
+
+        # -------------------------------------------------
+        # Search by taxon
+        # -------------------------------------------------
+        st.subheader("🌿 Search by Taxon")
+
+        taxon_input = st.text_input(
+            "Enter the family or species name",
+            placeholder="e.g., Fabaceae or Mimosa pudica",
+            key="taxon_input"
+        )
+
+        if st.button("Search by Taxon", key="buscar_taxon", use_container_width=True):
+            if not taxon_input:
+                st.warning("Enter a family or species name to search.")
+
+            else:
+                taxon_busca = taxon_input.strip().upper()
+
+                resultado_taxon = df[
+                    (df["family"].astype(str).str.upper() == taxon_busca) |
+                    (df["scientificName"].astype(str).str.upper() == taxon_busca) |
+                    (df["family"].astype(str).str.upper().str.contains(taxon_busca, na=False)) |
+                    (df["scientificName"].astype(str).str.upper().str.contains(taxon_busca, na=False))
+                ]
+
+                if resultado_taxon.empty:
+                    st.warning(f"No image found for the taxon: {taxon_input}")
+
+                else:
+                    st.success(f"{len(resultado_taxon)} image(s) found for the taxon: {taxon_input}")
+
+                    st.subheader("Taxon Data")
+
+                    col_stat1, col_stat2 = st.columns(2)
+
+                    with col_stat1:
+                        especies_unicas = resultado_taxon["scientificName"].nunique()
+                        st.metric("Different names", especies_unicas)
+
+                    with col_stat2:
+                        st.metric("Total images", len(resultado_taxon))
+
+                    if especies_unicas > 0:
+                        st.write("**Names found:**")
+                        especies_lista = resultado_taxon["scientificName"].dropna().unique()
+                        especies_texto = ""
+
+                        for especie in sorted(especies_lista):
+                            especies_texto += f"• {especie}\n"
+
+                        st.text(especies_texto)
+
+                    st.subheader("Image Gallery")
+
+                    items = list(resultado_taxon.iterrows())
+
+                    for i in range(0, len(items), 4):
+                        cols = st.columns(4)
+
+                        for j in range(4):
+                            if i + j >= len(items):
+                                continue
+
+                            _, row = items[i + j]
+                            file_id = drive_link_to_file_id(row.get("UrlExsicata"))
+
+                            with cols[j]:
+                                if not file_id:
+                                    st.warning("Invalid link")
+                                    continue
+
+                                try:
+                                    image_raw_bytes = download_drive_image(file_id)
+                                    img, _ = preparar_imagem_para_plantnet(image_raw_bytes)
+
+                                    st.image(
+                                        img,
+                                        caption=f"{row.get('barcode', '')}",
+                                        use_container_width=True
+                                    )
+
+                                    st.caption(f"**{row.get('barcode', '')}**")
+
+                                    if pd.notna(row.get("family")):
+                                        st.caption(f"Fam: {row.get('family')}")
+
+                                    if pd.notna(row.get("scientificName")):
+                                        st.caption(f"*{row.get('scientificName')}*")
+
+                                    st.markdown(
+                                        f"[Abrir original]({row.get('UrlExsicata')})",
+                                        unsafe_allow_html=True
+                                    )
+
+                                except Exception:
+                                    st.error("Error loading image")
+
+        # -------------------------------------------------
+        # Pl@ntNet attribution
+        # -------------------------------------------------
+        mostrar_logo_plantnet()
