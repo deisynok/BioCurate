@@ -19,12 +19,13 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import cv2
-from streamlit_gsheets import GSheetsConnection
 import requests
+import plotly.express as px
+
 from io import BytesIO
 from PIL import Image, ImageOps
+from streamlit_gsheets import GSheetsConnection
 from streamlit_option_menu import option_menu
-import plotly.express as px
 
 
 # -----------------------------------------------
