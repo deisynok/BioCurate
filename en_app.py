@@ -27,15 +27,34 @@ from streamlit_option_menu import option_menu
 import plotly.express as px
 
 
-def run():
-    # Session variables
-    if 'df' not in st.session_state:
-        st.session_state.df = None
-    if 'barcode_col' not in st.session_state:
-        st.session_state.barcode_col = 'collectionCode'
-    if 'img_folder' not in st.session_state:
-        st.session_state.img_folder = ''
+# -----------------------------------------------
+# General Configuration
+# -----------------------------------------------
 
+st.set_page_config(page_title="BioCurate",  
+    page_icon="favicon.png",
+    layout="centered"
+    )
+
+# Toggle for language selection (PT as default)
+col1, col2, col3 = st.columns([5, 1, 1])
+with col3:
+    is_en = st.toggle("PT / EN", value=False)
+
+# If the selected language is English, redirect to the translated page
+if is_en:
+    from en_app import run as run_en
+    run_en()
+    st.stop()  # Stop execution of the code below
+
+# Session variables
+if 'df' not in st.session_state:
+    st.session_state.df = None
+if 'barcode_col' not in st.session_state:
+    st.session_state.barcode_col = 'collectionCode'
+if 'img_folder' not in st.session_state:
+    st.session_state.img_folder = ''
+    
     # -----------------------------------------------
     # Responsive horizontal menu
     # -----------------------------------------------
