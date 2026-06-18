@@ -527,7 +527,7 @@ elif selected == "Busca":
 
         st.info(
             "Aponte a câmera para o QR Code da exsicata. "
-            "O QR Code deve conter o tombo, por exemplo HUAM001245, ou uma URL contendo esse código."
+            "O QR Code deve conter o tombo, por exemplo HUAM001245."
         )
 
         qr_image = st.camera_input("Capturar QR Code")
@@ -587,7 +587,7 @@ elif selected == "Busca":
         # -------------------------------------------------
         # Busca por número interno / bloco
         # -------------------------------------------------
-        st.subheader("🔢 Buscar por número interno")
+        st.subheader("🔍 Buscar por número interno")
 
         num_interno = st.text_input(
             "Digite o número interno (Número de Bloco)",
@@ -751,19 +751,7 @@ elif selected == "Imagem":
         return img, prepared_bytes
 
 
-    def identificar_com_plantnet(image_bytes, organ="auto"):
-        """
-        Envia uma imagem ao endpoint single-species identification do Pl@ntNet.
-
-        Boas práticas:
-        - API key mantida em st.secrets;
-        - api-key enviada em params;
-        - imagem enviada em files;
-        - organs enviado em data somente quando diferente de auto;
-        - timeout explícito;
-        - tentativas automáticas;
-        - mensagens de erro sem exposição da API key.
-        """
+    def identificar_com_plantnet(image_bytes, organ="auto"):       
         try:
             API_KEY = st.secrets["plantnet"]["api_key"]
         except KeyError:
