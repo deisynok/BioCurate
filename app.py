@@ -825,7 +825,6 @@ elif selected == "Imagem":
                         plantnet_response = identificar_com_plantnet(
                             image_prepared_bytes,
                             organ=organ_option,
-                            no_reject=no_reject
                         )
 
                         mostrar_resultados_plantnet(plantnet_response)
