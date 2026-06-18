@@ -319,119 +319,183 @@ elif selected == "Relatório":
 # Data Search Page
 # -----------------------------------------------
 elif selected == "Busca":
-    st.subheader("📋 Buscar Dados")
-    st.write("Consulte informações detalhadas das amostras a partir do número de tombo. Digite o código para visualizar dados taxonômicos, local de armazenamento, coletores e outras informações relevantes.")
-    
-    # Load the database
-    if st.session_state.df is None:
-        st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")	
-    else:
-        df = st.session_state.df.copy()
+    import re
+    import cv2
+    import numpy as np
+    import pandas as pd
+    import streamlit as st
 
-    # Manual input of the code
-    code = ""
-    codigo = st.text_input(
-        "Digite o número do tombo",
-        value=code,
-        placeholder="Ex.: HUAM001245 ou somente 1245"
+    st.subheader("📋 Buscar Dados")
+    st.write(
+        "Consulte informações detalhadas das amostras a partir do número de tombo. "
+        "Digite o código manualmente ou faça a leitura do QR Code para visualizar dados taxonômicos, "
+        "local de armazenamento, coletores e outras informações relevantes."
     )
 
-    # Lookup button
-    if st.button("🔍 Buscar por tombo"):
-        df = st.session_state.df.copy()
-        col = 'collectionCode'
-        st.session_state.barcode_col = col
-        code = codigo.strip().upper()
-        df[col] = df[col].astype(str).str.upper()
+    # -------------------------------------------------
+    # Funções auxiliares
+    # -------------------------------------------------
+    def normalizar_codigo(valor):
+        """
+        Normaliza o código lido manualmente ou por QR Code.
+        Aceita códigos como HUAM001245, 1245 ou URLs contendo o código.
+        """
+        if valor is None:
+            return ""
+
+        texto = str(valor).strip().upper()
+
+        # Caso o QR Code contenha uma URL, tenta extrair HUAM + números
+        match_huam = re.search(r"HUAM\s*0*\d+", texto)
+        if match_huam:
+            return match_huam.group(0).replace(" ", "")
+
+        # Caso contenha apenas números
+        match_num = re.search(r"\d+", texto)
+        if match_num:
+            return match_num.group(0)
+
+        return texto
+
+
+    def buscar_por_tombo(df, codigo_busca):
+        """
+        Busca o tombo na base.
+        Prioriza collectionCode, mas aceita barcode se existir.
+        """
+        codigo_busca = normalizar_codigo(codigo_busca)
+
+        colunas_possiveis = ["collectionCode", "barcode", "catalogNumber"]
+
+        col = None
+        for c in colunas_possiveis:
+            if c in df.columns:
+                col = c
+                break
+
+        if col is None:
+            st.error(
+                "A base não possui coluna de tombo reconhecida. "
+                "Esperado: collectionCode, barcode ou catalogNumber."
+            )
+            return pd.DataFrame(), None
+
+        df = df.copy()
+        df[col] = df[col].fillna("").astype(str).str.upper().str.strip()
+
         result = df[
-            df[col].str.upper().eq(code) |
-            df[col].str.endswith(code.zfill(6))
+            df[col].eq(codigo_busca) |
+            df[col].str.endswith(codigo_busca) |
+            df[col].str.endswith(codigo_busca.zfill(6))
         ]
 
-        # Save the specimen code to the session
-        st.session_state["last_codigo"] = code
+        return result, col
 
-        if not result.empty:
-            first = result.iloc[0]
 
-            # Scientific name and author (with fallback)
-            sci = first.get("scientificName", "")
-            sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
+    def ler_qrcode(uploaded_image):
+        """
+        Decodifica QR Code a partir da imagem capturada por st.camera_input.
+        """
+        file_bytes = np.asarray(bytearray(uploaded_image.getvalue()), dtype=np.uint8)
+        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-            auth = first.get("scientificNameAuthorship", "")
-            if not isinstance(auth, str) or not auth.strip():
-                auth = ""
+        if img is None:
+            return None
 
-            if auth:
-                st.markdown(
-                    f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i> {auth}</div>",
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i></div>",
-                    unsafe_allow_html=True
-                )
+        detector = cv2.QRCodeDetector()
+        data, bbox, _ = detector.detectAndDecode(img)
 
-            # Family
-            fam = first.get("family")
-            if pd.notna(fam):
-                st.markdown(
-                    f"<div style='font-size: 18px;'>Família: {fam}</div>",
-                    unsafe_allow_html=True
-                )
+        if data:
+            return data.strip()
 
-            # Storage Location
-            loc = first.get("dynamicProperties")
-            if pd.notna(loc):
-                st.markdown(
-                    f"<b>Localização na coleção:</b> {loc}",
-                    unsafe_allow_html=True
-                )
+        return None
 
-            # Collector and collection number
-            coll = first.get("recordedBy")
-            addcoll = first.get("addCollector")
-            number = first.get("recordNumber")
-                
-            collected = f"{number or ''}".strip()
-            if coll or collected:
-                st.markdown(
-                    f"<b>Coletor(s):</b> {coll or ''} <b>nº</b> {collected} <b>&</b> {addcoll or ''}",
-                    unsafe_allow_html=True
-                )
 
-            # Collection date
-            date_parts = []
-            for f in ["dayCollected", "monthCollected", "yearCollected"]:
-                val = first.get(f)
-                if pd.notna(val):
-                    date_parts.append(str(int(val)))
-            if date_parts:
-                st.markdown(
-                    f"<b>Data de coleta:</b> {'/'.join(date_parts)}",
-                    unsafe_allow_html=True
-                )
-            
-            # Internal Number (fieldNumber)
-            field_number = first.get("fieldNumber")
-            if pd.notna(field_number) and str(field_number).strip():
-                st.markdown(
-                    f"<b>Número interno (bloco):</b> {field_number}",
-                    unsafe_allow_html=True
-                )
+    def mostrar_dados_amostra(result):
+        """
+        Exibe os dados principais da amostra encontrada.
+        """
+        if result.empty:
+            st.error("Código não encontrado.")
+            return
 
-            # View full dataset entry
-            st.dataframe(result, use_container_width=True)       
-            
-            # External search by scientific name or family
-            nome_busca = ""
-            if isinstance(sci, str) and sci.strip():
-                nome_busca = sci.strip().replace(" ", "+")
-            elif isinstance(fam, str) and fam.strip():
-                nome_busca = fam.strip().replace(" ", "+")
+        first = result.iloc[0]
 
-            st.markdown("""
+        sci = first.get("scientificName", "")
+        sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
+
+        auth = first.get("scientificNameAuthorship", "")
+        if not isinstance(auth, str) or not auth.strip():
+            auth = ""
+
+        if auth:
+            st.markdown(
+                f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i> {auth}</div>",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"<div style='font-size: 24px; font-weight: bold;'><i>{sci}</i></div>",
+                unsafe_allow_html=True
+            )
+
+        fam = first.get("family")
+        if pd.notna(fam):
+            st.markdown(
+                f"<div style='font-size: 18px;'>Família: {fam}</div>",
+                unsafe_allow_html=True
+            )
+
+        loc = first.get("dynamicProperties")
+        if pd.notna(loc):
+            st.markdown(
+                f"<b>Localização na coleção:</b> {loc}",
+                unsafe_allow_html=True
+            )
+
+        coll = first.get("recordedBy")
+        addcoll = first.get("addCollector")
+        number = first.get("recordNumber")
+
+        collected = f"{number or ''}".strip()
+        if coll or collected or addcoll:
+            st.markdown(
+                f"<b>Coletor(s):</b> {coll or ''} <b>nº</b> {collected} <b>&</b> {addcoll or ''}",
+                unsafe_allow_html=True
+            )
+
+        date_parts = []
+        for f in ["dayCollected", "monthCollected", "yearCollected"]:
+            val = first.get(f)
+            if pd.notna(val):
+                try:
+                    date_parts.append(str(int(float(val))))
+                except Exception:
+                    date_parts.append(str(val))
+
+        if date_parts:
+            st.markdown(
+                f"<b>Data de coleta:</b> {'/'.join(date_parts)}",
+                unsafe_allow_html=True
+            )
+
+        field_number = first.get("fieldNumber")
+        if pd.notna(field_number) and str(field_number).strip():
+            st.markdown(
+                f"<b>Número interno (bloco):</b> {field_number}",
+                unsafe_allow_html=True
+            )
+
+        st.dataframe(result, use_container_width=True)
+
+        nome_busca = ""
+        if isinstance(sci, str) and sci.strip() and sci != "Indeterminada":
+            nome_busca = sci.strip().replace(" ", "+")
+        elif isinstance(fam, str) and fam.strip():
+            nome_busca = fam.strip().replace(" ", "+")
+
+        st.markdown(
+            """
             ### 📤 Pesquisar o nome em bases científicas:
             <div style='display: flex; flex-wrap: wrap; gap: 10px;'>
                 <a href='https://www.gbif.org/search?q=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>GBIF</a>
@@ -443,36 +507,110 @@ elif selected == "Busca":
                 <a href='https://plants.jstor.org/search?filter=name&so=ps_group_by_genus_species+asc&Query=""" + nome_busca + """' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>JSTOR Plants</a>
                 <a href='https://specieslink.net/search/' target='_blank' style='background: #eee; padding: 8px 12px; border-radius: 5px; text-decoration: none;'>SpeciesLink</a>
             </div>
-            """, unsafe_allow_html=True)
-                                    
-        else:
-            st.error("Código não encontrado.")
-        
-    st.markdown("---")
+            """,
+            unsafe_allow_html=True
+        )
 
-     # Entry for fieldNumber
-    num_interno = st.text_input(
-        "Digite o número interno (Número de Bloco)",
-        value="",
-        placeholder="Ex.: 321"
-    )
+    # -------------------------------------------------
+    # Verificar base
+    # -------------------------------------------------
+    if "df" not in st.session_state or st.session_state.df is None:
+        st.warning("⚠️ A base de dados precisa ser carregada na aba **BASE**!")
 
-    # Search Button
-    if st.button("🔍 Buscar por bloco"):
+    else:
         df = st.session_state.df.copy()
 
-        if "fieldNumber" not in df.columns:
-            st.warning("⚠️ Sua base de dados não possui a coluna 'fieldNumber'.")
-        else:
-            df["fieldNumber"] = df["fieldNumber"].astype(str).str.strip()
-            num_interno = num_interno.strip()
-            resultado_bloco = df[df["fieldNumber"] == num_interno]
+        # -------------------------------------------------
+        # Leitura por QR Code
+        # -------------------------------------------------
+        st.subheader("📷 Ler QR Code")
 
-            if not resultado_bloco.empty:
-                st.success(f"{len(resultado_bloco)} amostra(s) encontrada(s) com Número interno '{num_interno}'.")
-                st.dataframe(resultado_bloco, use_container_width=True)
+        st.info(
+            "Aponte a câmera para o QR Code da exsicata. "
+            "O QR Code deve conter o tombo, por exemplo HUAM001245, ou uma URL contendo esse código."
+        )
+
+        qr_image = st.camera_input("Capturar QR Code")
+
+        if qr_image is not None:
+            qr_text = ler_qrcode(qr_image)
+
+            if qr_text:
+                codigo_lido = normalizar_codigo(qr_text)
+
+                st.success(f"QR Code lido: {qr_text}")
+                st.info(f"Código interpretado para busca: {codigo_lido}")
+
+                result, col_usada = buscar_por_tombo(df, codigo_lido)
+
+                if col_usada:
+                    st.caption(f"Busca realizada na coluna: {col_usada}")
+
+                st.session_state["last_codigo"] = codigo_lido
+                mostrar_dados_amostra(result)
+
             else:
-                st.warning("Nenhuma amostra encontrada com esse número interno.")              
+                st.warning(
+                    "Não foi possível ler o QR Code. "
+                    "Tente aproximar a câmera, melhorar a iluminação ou centralizar melhor o código."
+                )
+
+        st.markdown("---")
+
+        # -------------------------------------------------
+        # Busca manual por tombo
+        # -------------------------------------------------
+        st.subheader("🔎 Busca manual por tombo")
+
+        codigo = st.text_input(
+            "Digite o número do tombo",
+            value="",
+            placeholder="Ex.: HUAM001245 ou somente 1245"
+        )
+
+        if st.button("🔍 Buscar por tombo"):
+            if not codigo:
+                st.warning("Digite o número do tombo antes de buscar.")
+
+            else:
+                code = normalizar_codigo(codigo)
+                result, col_usada = buscar_por_tombo(df, code)
+
+                if col_usada:
+                    st.caption(f"Busca realizada na coluna: {col_usada}")
+
+                st.session_state["last_codigo"] = code
+                mostrar_dados_amostra(result)
+
+        st.markdown("---")
+
+        # -------------------------------------------------
+        # Busca por número interno / bloco
+        # -------------------------------------------------
+        st.subheader("🔢 Buscar por número interno")
+
+        num_interno = st.text_input(
+            "Digite o número interno (Número de Bloco)",
+            value="",
+            placeholder="Ex.: 321"
+        )
+
+        if st.button("🔍 Buscar por bloco"):
+            if "fieldNumber" not in df.columns:
+                st.warning("⚠️ Sua base de dados não possui a coluna 'fieldNumber'.")
+
+            else:
+                df["fieldNumber"] = df["fieldNumber"].astype(str).str.strip()
+                num_interno = num_interno.strip()
+                resultado_bloco = df[df["fieldNumber"] == num_interno]
+
+                if not resultado_bloco.empty:
+                    st.success(
+                        f"{len(resultado_bloco)} amostra(s) encontrada(s) com Número interno '{num_interno}'."
+                    )
+                    st.dataframe(resultado_bloco, use_container_width=True)
+                else:
+                    st.warning("Nenhuma amostra encontrada com esse número interno.")              
 
 # -----------------------------------------------
 # Image Lookup + Pl@ntNet
