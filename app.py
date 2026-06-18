@@ -494,35 +494,7 @@ elif selected == "Imagem":
         "**Pl@ntNet** para realizar sugestões automáticas de identificação botânica. "
         "Informe o número do tombo para visualizar a imagem da exsicata e receber a lista de espécies prováveis."
     )
-    st.subheader("Teste de conexão Pl@ntNet")
-
-if st.button("Testar Pl@ntNet no Streamlit"):
-    import requests
-
-    API_KEY = st.secrets["plantnet"]["api_key"]
-
-    try:
-        r = requests.get(
-            "https://my-api.plantnet.org/v2/projects",
-            params={"api-key": API_KEY},
-            timeout=(10, 30)
-        )
-
-        st.write("Status HTTP:", r.status_code)
-        st.write(r.text[:1000])
-
-    except requests.exceptions.ConnectTimeout:
-        st.error("ConnectTimeout: o servidor onde o Streamlit está rodando não conseguiu conectar ao Pl@ntNet.")
-
-    except requests.exceptions.ReadTimeout:
-        st.error("ReadTimeout: conectou ao Pl@ntNet, mas a resposta demorou demais.")
-
-    except requests.exceptions.ConnectionError as e:
-        st.error(f"ConnectionError: falha de rede entre Streamlit e Pl@ntNet. Tipo: {type(e).__name__}")
-
-    except Exception as e:
-        st.error(f"Erro inesperado: {type(e).__name__}")
-
+    
     # -------------------------------------------------
     # Configurações gerais
     # -------------------------------------------------
@@ -778,15 +750,7 @@ if st.button("Testar Pl@ntNet no Streamlit"):
             "quando a imagem estiver claramente recortada para esse órgão."
         )
     )
-
-    no_reject = st.checkbox(
-        "Forçar identificação mesmo se a imagem for rejeitada como não planta",
-        value=False,
-        help=(
-            "Use apenas quando a API rejeitar imagens de exsicatas por causa de etiqueta, papel, escala ou fundo."
-        )
-    )
-
+    
     if st.button("🔍 Buscar por Tombo", key="buscar_tombo", use_container_width=True):
         if not codigo:
             st.warning("Digite um número de tombo para buscar.")
