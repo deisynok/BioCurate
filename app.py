@@ -11,16 +11,21 @@
 # Last updated: 2026-06-18
 # -----------------------------------------------
 
+import os
+import re
+import io
+import time
 import streamlit as st
 import pandas as pd
 import numpy as np
 import cv2
-from streamlit_gsheets import GSheetsConnection
 import requests
-from io import BytesIO
-from PIL import Image
-from streamlit_option_menu import option_menu
 import plotly.express as px
+
+from io import BytesIO
+from PIL import Image, ImageOps
+from streamlit_gsheets import GSheetsConnection
+from streamlit_option_menu import option_menu
 
 
 # -----------------------------------------------
@@ -319,12 +324,6 @@ elif selected == "Relatório":
 # Data Search Page
 # -----------------------------------------------
 elif selected == "Busca":
-    import re
-    import cv2
-    import numpy as np
-    import pandas as pd
-    import streamlit as st
-
     st.subheader("📋 Buscar Dados")
     st.write(
         "Consulte informações detalhadas das amostras a partir do número de tombo. "
@@ -616,18 +615,6 @@ elif selected == "Busca":
 # Image Lookup + Pl@ntNet
 # -----------------------------------------------
 elif selected == "Imagem":
-    import os
-    import re
-    import io
-    import time
-    import requests
-    import pandas as pd
-    import streamlit as st
-
-    from io import BytesIO
-    from PIL import Image, ImageOps
-    from streamlit_gsheets import GSheetsConnection
-
     st.subheader("📷 Buscar Imagem")
     st.write(
         "Busque imagens das amostras do HUAM vinculadas à base de dados e utilize o serviço "
