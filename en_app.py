@@ -31,20 +31,19 @@ import plotly.express as px
 # General Configuration
 # -----------------------------------------------
 
-st.set_page_config(page_title="BioCurate",  
-    page_icon="favicon.png",
-    layout="centered"
-    )
-
-# Session variables
-if 'df' not in st.session_state:
-    st.session_state.df = None
-if 'barcode_col' not in st.session_state:
-    st.session_state.barcode_col = 'collectionCode'
-if 'img_folder' not in st.session_state:
-    st.session_state.img_folder = ''
-    
+def run():
     # -----------------------------------------------
+    # Session variables
+    # -----------------------------------------------
+    if "df" not in st.session_state:
+        st.session_state.df = None
+
+    if "barcode_col" not in st.session_state:
+        st.session_state.barcode_col = "collectionCode"
+
+    if "img_folder" not in st.session_state:
+        st.session_state.img_folder = ""
+    # -----------------------------------------------    
     # Responsive horizontal menu
     # -----------------------------------------------
 
