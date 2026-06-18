@@ -478,6 +478,8 @@ elif selected == "Busca":
 # Image Lookup + Pl@ntNet
 # -----------------------------------------------
 elif selected == "Imagem":
+    import os
+    import re
     import io
     import time
     import requests
@@ -494,13 +496,15 @@ elif selected == "Imagem":
         "**Pl@ntNet** para realizar sugestões automáticas de identificação botânica. "
         "Informe o número do tombo para visualizar a imagem da exsicata e receber a lista de espécies prováveis."
     )
-    
+
     # -------------------------------------------------
     # Configurações gerais
     # -------------------------------------------------
-    DRIVE_TIMEOUT = (10, 30)       # 10 s para conectar, 30 s para resposta
-    PLANTNET_TIMEOUT = (10, 60)    # 10 s para conectar, 60 s para resposta
+    DRIVE_TIMEOUT = (10, 30)
+    PLANTNET_TIMEOUT = (10, 60)
     MAX_TENTATIVAS = 3
+    PLANTNET_PROJECT = "all"
+    PLANTNET_URL = f"https://my-api.plantnet.org/v2/identify/{PLANTNET_PROJECT}"
 
     # -------------------------------------------------
     # Carregar base
@@ -508,16 +512,28 @@ elif selected == "Imagem":
     conn = st.connection("gsheets", type=GSheetsConnection)
     df = conn.read(worksheet="Image", ttl="10m")
 
-    # Remover imagens da subpasta indesejada
     df = df[~df["Subpasta"].astype(str).str.contains("Fotos exsicatas Mike", na=False)]
 
     # -------------------------------------------------
     # Funções auxiliares
     # -------------------------------------------------
+    def redigir_api_key(texto):
+        """
+        Remove a API key de qualquer mensagem de erro antes de exibir na interface.
+        """
+        if texto is None:
+            return ""
+
+        texto = str(texto)
+        texto = re.sub(r"(api-key=)[^&\s]+", r"\1[REMOVIDA]", texto)
+        texto = re.sub(r'("api-key"\s*:\s*")[^"]+(")', r'\1[REMOVIDA]\2', texto)
+        return texto
+
+
     def drive_link_to_file_id(link):
         """
         Extrai o file_id de um link do Google Drive.
-        Aceita links no formato /file/d/ID/view ou /d/ID.
+        Aceita links no formato /file/d/ID/view, /d/ID ou URLs com ?id=.
         """
         if not isinstance(link, str):
             return None
@@ -538,7 +554,6 @@ elif selected == "Imagem":
     def download_drive_image(file_id):
         """
         Faz download da imagem do Google Drive com timeout explícito.
-        Retorna os bytes da imagem.
         """
         url = f"https://drive.google.com/uc?export=view&id={file_id}"
 
@@ -548,11 +563,13 @@ elif selected == "Imagem":
         except requests.exceptions.Timeout:
             raise RuntimeError("Timeout ao baixar a imagem do Google Drive.")
 
-        except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Erro de rede ao acessar o Google Drive: {e}")
+        except requests.exceptions.RequestException:
+            raise RuntimeError("Erro de rede ao acessar o Google Drive.")
 
         if response.status_code != 200:
-            raise RuntimeError(f"Não foi possível carregar a imagem do Drive. Status HTTP: {response.status_code}")
+            raise RuntimeError(
+                f"Não foi possível carregar a imagem do Drive. Status HTTP: {response.status_code}"
+            )
 
         content_type = response.headers.get("Content-Type", "")
 
@@ -568,16 +585,15 @@ elif selected == "Imagem":
     def preparar_imagem_para_plantnet(image_bytes, max_size_mb=45):
         """
         Abre a imagem, corrige orientação EXIF, converte para RGB e gera JPEG.
-        Isso evita problemas com PNG com transparência, CMYK ou metadados.
-        O limite da API Pl@ntNet é 50 MB por requisição; aqui mantemos margem de segurança.
+        Mantém margem de segurança abaixo do limite de 50 MB aceito pelo Pl@ntNet.
         """
         try:
             img = Image.open(BytesIO(image_bytes))
             img = ImageOps.exif_transpose(img)
             img = img.convert("RGB")
 
-        except Exception as e:
-            raise RuntimeError(f"Erro ao abrir/converter a imagem: {e}")
+        except Exception:
+            raise RuntimeError("Erro ao abrir ou converter a imagem.")
 
         buffer = BytesIO()
         img.save(buffer, format="JPEG", quality=90, optimize=True)
@@ -586,33 +602,34 @@ elif selected == "Imagem":
         max_size_bytes = max_size_mb * 1024 * 1024
 
         if len(prepared_bytes) > max_size_bytes:
-            # Redução conservadora, mantendo proporção
             img.thumbnail((2500, 2500))
             buffer = BytesIO()
             img.save(buffer, format="JPEG", quality=85, optimize=True)
             prepared_bytes = buffer.getvalue()
 
         if len(prepared_bytes) > 50 * 1024 * 1024:
-            raise RuntimeError("A imagem ainda excede 50 MB, limite máximo aceito pelo Pl@ntNet.")
+            raise RuntimeError("A imagem excede 50 MB, limite máximo aceito pelo Pl@ntNet.")
 
         return img, prepared_bytes
 
 
-    def identificar_com_plantnet(image_bytes, organ="auto", no_reject=False):
+    def identificar_com_plantnet(image_bytes, organ="auto"):
         """
         Envia uma imagem ao endpoint single-species identification do Pl@ntNet.
-        Boas práticas aplicadas:
-        - API key em st.secrets;
-        - api-key enviada em params, não no corpo;
-        - images em files;
-        - organs em data apenas quando organ != auto;
-        - timeout explícito;
-        - tentativas automáticas em falhas transitórias;
-        - nb-results limitado para reduzir tempo de resposta.
-        """
-        API_KEY = st.secrets["plantnet"]["api_key"]
 
-        plantnet_url = "https://my-api.plantnet.org/v2/identify/all"
+        Boas práticas:
+        - API key mantida em st.secrets;
+        - api-key enviada em params;
+        - imagem enviada em files;
+        - organs enviado em data somente quando diferente de auto;
+        - timeout explícito;
+        - tentativas automáticas;
+        - mensagens de erro sem exposição da API key.
+        """
+        try:
+            API_KEY = st.secrets["plantnet"]["api_key"]
+        except KeyError:
+            raise RuntimeError("API key do Pl@ntNet não encontrada em st.secrets.")
 
         params = {
             "api-key": API_KEY,
@@ -620,27 +637,24 @@ elif selected == "Imagem":
             "lang": "en"
         }
 
-        if no_reject:
-            params["no-reject"] = "true"
-
-        files = [
-            ("images", ("image.jpg", BytesIO(image_bytes), "image/jpeg"))
-        ]
-
-        # Para exsicata inteira, o mais adequado é deixar auto.
-        # Segundo a documentação, omitir organs faz o Pl@ntNet assumir auto.
         data = None
         if organ and organ != "auto":
             data = {
                 "organs": [organ]
             }
 
-        ultimo_erro = None
+        ultimo_erro_tipo = None
 
         for tentativa in range(1, MAX_TENTATIVAS + 1):
             try:
+                # Recriar BytesIO e files a cada tentativa.
+                # Isso evita que o arquivo seja reenviado vazio após uma falha.
+                files = [
+                    ("images", ("image.jpg", BytesIO(image_bytes), "image/jpeg"))
+                ]
+
                 response = requests.post(
-                    plantnet_url,
+                    PLANTNET_URL,
                     params=params,
                     files=files,
                     data=data,
@@ -649,30 +663,33 @@ elif selected == "Imagem":
 
                 return response
 
-            except requests.exceptions.ConnectTimeout as e:
-                ultimo_erro = e
+            except requests.exceptions.ConnectTimeout:
+                ultimo_erro_tipo = "ConnectTimeout"
                 st.warning(f"Tentativa {tentativa}: timeout de conexão com o Pl@ntNet.")
 
-            except requests.exceptions.ReadTimeout as e:
-                ultimo_erro = e
+            except requests.exceptions.ReadTimeout:
+                ultimo_erro_tipo = "ReadTimeout"
                 st.warning(f"Tentativa {tentativa}: o Pl@ntNet conectou, mas demorou para responder.")
 
-            except requests.exceptions.ConnectionError as e:
-                ultimo_erro = e
+            except requests.exceptions.ConnectionError:
+                ultimo_erro_tipo = "ConnectionError"
                 st.warning(f"Tentativa {tentativa}: erro de conexão com o Pl@ntNet.")
 
-            except requests.exceptions.RequestException as e:
-                ultimo_erro = e
+            except requests.exceptions.RequestException:
+                ultimo_erro_tipo = "RequestException"
                 st.warning(f"Tentativa {tentativa}: falha na requisição ao Pl@ntNet.")
 
             time.sleep(3 * tentativa)
 
-        raise RuntimeError(f"Não foi possível conectar ao Pl@ntNet após {MAX_TENTATIVAS} tentativas: {ultimo_erro}")
+        raise RuntimeError(
+            f"Não foi possível conectar ao Pl@ntNet após {MAX_TENTATIVAS} tentativas. "
+            f"Tipo do último erro: {ultimo_erro_tipo}."
+        )
 
 
     def mostrar_resultados_plantnet(response):
         """
-        Exibe resultados retornados pela API Pl@ntNet.
+        Exibe os resultados retornados pela API Pl@ntNet.
         """
         if response.status_code != 200:
             try:
@@ -680,7 +697,12 @@ elif selected == "Imagem":
             except Exception:
                 error_detail = response.text
 
-            st.error(f"Erro na API Pl@ntNet: {response.status_code} - {error_detail}")
+            error_detail = redigir_api_key(error_detail)
+
+            st.error(f"Erro na API Pl@ntNet: {response.status_code}")
+            with st.expander("Detalhes técnicos"):
+                st.write(error_detail)
+
             return
 
         resultado_json = response.json()
@@ -697,8 +719,11 @@ elif selected == "Imagem":
         if predicted_organs:
             organ_pred = predicted_organs[0].get("organ")
             organ_score = predicted_organs[0].get("score")
-            if organ_pred is not None:
+
+            if organ_pred is not None and organ_score is not None:
                 st.write(f"**Órgão detectado:** {organ_pred} ({organ_score:.2%})")
+            elif organ_pred is not None:
+                st.write(f"**Órgão detectado:** {organ_pred}")
 
         if version:
             st.caption(f"Versão do motor Pl@ntNet: {version}")
@@ -717,7 +742,10 @@ elif selected == "Imagem":
             family_data = species_data.get("family", {})
 
             species_name = species_data.get("scientificName", "Nome não disponível")
-            species_name_without_author = species_data.get("scientificNameWithoutAuthor", "Nome não disponível")
+            species_name_without_author = species_data.get(
+                "scientificNameWithoutAuthor",
+                "Nome não disponível"
+            )
             family_name = family_data.get("scientificNameWithoutAuthor", "Família não disponível")
             score = res.get("score", 0)
 
@@ -727,6 +755,35 @@ elif selected == "Imagem":
                 f"- **{species_name}** — {family_name} — Confiança: {score:.2%} | "
                 f"[Conferir táxon no GBIF](https://www.gbif.org/search?q={nome_busca})"
             )
+
+
+    def mostrar_logo_plantnet():
+        """
+        Exibe o logo de atribuição do Pl@ntNet ao final da página.
+        Coloque o arquivo powered-by-plantnet.png na mesma pasta do app.py
+        ou dentro de uma pasta assets/.
+        """
+        st.divider()
+
+        caminhos_possiveis = [
+            "powered-by-plantnet.png",
+            "assets/powered-by-plantnet.png",
+            "images/powered-by-plantnet.png"
+        ]
+
+        logo_path = None
+
+        for caminho in caminhos_possiveis:
+            if os.path.exists(caminho):
+                logo_path = caminho
+                break
+
+        if logo_path:
+            col_logo, _ = st.columns([1, 4])
+            with col_logo:
+                st.image(logo_path, width=180)
+        else:
+            st.caption("Powered by Pl@ntNet")
 
 
     # -------------------------------------------------
@@ -750,7 +807,7 @@ elif selected == "Imagem":
             "quando a imagem estiver claramente recortada para esse órgão."
         )
     )
-    
+
     if st.button("🔍 Buscar por Tombo", key="buscar_tombo", use_container_width=True):
         if not codigo:
             st.warning("Digite um número de tombo para buscar.")
@@ -786,7 +843,7 @@ elif selected == "Imagem":
                         img, image_prepared_bytes = preparar_imagem_para_plantnet(image_raw_bytes)
 
                     except Exception as e:
-                        st.error(f"Erro ao carregar/preparar a imagem: {e}")
+                        st.error(f"Erro ao carregar/preparar a imagem: {redigir_api_key(e)}")
                         continue
 
                     col1, col2 = st.columns([2, 1])
@@ -812,25 +869,18 @@ elif selected == "Imagem":
 
                         st.write(f"**URL:** [Abrir imagem original]({row.get('UrlExsicata')})")
 
-                        st.download_button(
-                            label="📥 Download da Imagem",
-                            data=image_prepared_bytes,
-                            file_name=f"{row.get('barcode', 'imagem')}.jpg",
-                            mime="image/jpeg"
-                        )
-
                     st.info("Enviando para Pl@ntNet...")
 
                     try:
                         plantnet_response = identificar_com_plantnet(
                             image_prepared_bytes,
-                            organ=organ_option,
+                            organ=organ_option
                         )
 
                         mostrar_resultados_plantnet(plantnet_response)
 
                     except Exception as e:
-                        st.error(f"Erro ao conectar/processar a resposta do Pl@ntNet: {e}")
+                        st.error(f"Erro ao conectar/processar a resposta do Pl@ntNet: {redigir_api_key(e)}")
 
 
     # -------------------------------------------------
@@ -929,3 +979,8 @@ elif selected == "Imagem":
 
                             except Exception:
                                 st.error("Erro ao carregar imagem")
+
+    # -------------------------------------------------
+    # Atribuição Pl@ntNet
+    # -------------------------------------------------
+    mostrar_logo_plantnet()
