@@ -419,9 +419,27 @@ elif selected == "Busca":
             return
 
         first = result.iloc[0]
-
-        sci = first.get("scientificName", "")
-        sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
+        
+        #sci modificado para retornar somente genus+species
+        #sci = first.get("scientificName", "")
+        #sci = sci if isinstance(sci, str) and sci.strip() else "Indeterminada"
+        genus = first.get("genus", "")
+        specific_epithet = first.get("specificEpithet", "")
+        
+        genus = genus.strip() if isinstance(genus, str) else ""
+        specific_epithet = (
+            specific_epithet.strip()
+            if isinstance(specific_epithet, str)
+            else ""
+        )
+        
+        if genus and specific_epithet:
+            sci = f"{genus} {specific_epithet}"
+        elif genus:
+            sci = genus
+        else:
+            sci = "Indeterminada"
+        
 
         auth = first.get("scientificNameAuthorship", "")
         if not isinstance(auth, str) or not auth.strip():
@@ -520,43 +538,6 @@ elif selected == "Busca":
         df = st.session_state.df.copy()
 
         # -------------------------------------------------
-        # Leitura por QR Code
-        # -------------------------------------------------
-        st.subheader("📷 Ler QR Code")
-
-        st.info(
-            "Aponte a câmera para o QR Code da exsicata. "
-            "O QR Code deve conter o tombo, por exemplo HUAM001245."
-        )
-
-        qr_image = st.camera_input("Capturar QR Code")
-
-        if qr_image is not None:
-            qr_text = ler_qrcode(qr_image)
-
-            if qr_text:
-                codigo_lido = normalizar_codigo(qr_text)
-
-                st.success(f"QR Code lido: {qr_text}")
-                st.info(f"Código interpretado para busca: {codigo_lido}")
-
-                result, col_usada = buscar_por_tombo(df, codigo_lido)
-
-                if col_usada:
-                    st.caption(f"Busca realizada na coluna: {col_usada}")
-
-                st.session_state["last_codigo"] = codigo_lido
-                mostrar_dados_amostra(result)
-
-            else:
-                st.warning(
-                    "Não foi possível ler o QR Code. "
-                    "Tente aproximar a câmera, melhorar a iluminação ou centralizar melhor o código."
-                )
-
-        st.markdown("---")
-
-        # -------------------------------------------------
         # Busca manual por tombo
         # -------------------------------------------------
         st.subheader("🔎 Busca manual por tombo")
@@ -609,7 +590,44 @@ elif selected == "Busca":
                     )
                     st.dataframe(resultado_bloco, use_container_width=True)
                 else:
-                    st.warning("Nenhuma amostra encontrada com esse número interno.")              
+                    st.warning("Nenhuma amostra encontrada com esse número interno.")
+                    
+        # -------------------------------------------------
+        # Leitura por QR Code
+        # -------------------------------------------------
+        st.subheader("📷 Ler QR Code")
+
+        st.info(
+            "Aponte a câmera para o QR Code da exsicata. "
+            "O QR Code deve conter o tombo, por exemplo HUAM001245."
+        )
+
+        qr_image = st.camera_input("Capturar QR Code")
+
+        if qr_image is not None:
+            qr_text = ler_qrcode(qr_image)
+
+            if qr_text:
+                codigo_lido = normalizar_codigo(qr_text)
+
+                st.success(f"QR Code lido: {qr_text}")
+                st.info(f"Código interpretado para busca: {codigo_lido}")
+
+                result, col_usada = buscar_por_tombo(df, codigo_lido)
+
+                if col_usada:
+                    st.caption(f"Busca realizada na coluna: {col_usada}")
+
+                st.session_state["last_codigo"] = codigo_lido
+                mostrar_dados_amostra(result)
+
+            else:
+                st.warning(
+                    "Não foi possível ler o QR Code. "
+                    "Tente aproximar a câmera, melhorar a iluminação ou centralizar melhor o código."
+                )
+
+        st.markdown("---")
 
 # -----------------------------------------------
 # Image Lookup + Pl@ntNet
