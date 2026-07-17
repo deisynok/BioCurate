@@ -643,8 +643,8 @@ elif selected == "Imagem":
     # -------------------------------------------------
     # Configurações gerais
     # -------------------------------------------------
-    DRIVE_TIMEOUT = (10, 30)
-    PLANTNET_TIMEOUT = (10, 60)
+    DRIVE_TIMEOUT = (15, 60)
+    PLANTNET_TIMEOUT = (30, 120)
     MAX_TENTATIVAS = 3
     PLANTNET_PROJECT = "all"
     PLANTNET_URL = f"https://my-api.plantnet.org/v2/identify/{PLANTNET_PROJECT}"
@@ -771,7 +771,7 @@ elif selected == "Imagem":
         data = None
         if organ and organ != "auto":
             data = {
-                "organs": [organ]
+                "organs": organ
             }
 
         ultimo_erro_tipo = None
